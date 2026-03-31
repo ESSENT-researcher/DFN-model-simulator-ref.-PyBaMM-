@@ -270,8 +270,9 @@ def download_png():
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5001))
     print("=" * 60)
     print("  DFN Battery Simulator — Web Interface")
-    print("  http://localhost:5001")
+    print(f"  http://localhost:{port}")
     print("=" * 60)
-    app.run(debug=False, port=5001, threaded=False)
+    app.run(debug=False, host="0.0.0.0", port=port, threaded=False)
