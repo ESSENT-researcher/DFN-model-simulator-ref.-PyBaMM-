@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"/Users/essential/Documents/GitHub/DFN model simulator\\(originated by PyBaMM\\)/\")",
+      "Bash(ls \"/Users/essential/Documents/GitHub/DFN model simulator\\(originated by PyBaMM\\)/templates/\")",
+      "Bash(mv \"DFN model simulation.py\" \"DFN model simulation code.py\")",
+      "Bash(mv \"DFN model simulator.py\" \"DFN model server code.py\")",
+      "Bash(ls -la \"/Users/essential/Documents/GitHub/DFN model simulator\\(originated by PyBaMM\\)/\")",
+      "Read(//Users/essential/Documents/GitHub/**)",
+      "Bash(ls \"/Users/essential/Documents/GitHub/DFN model simulator\\(ref by PyBaMM\\)/\")",
+      "Bash(ls \"/Users/essential/Documents/GitHub/DFN model simulator\\(ref. PyBaMM\\)/\")",
+      "Bash(chmod +x \"/Users/essential/Documents/GitHub/DFN model simulator\\(ref. PyBaMM\\)/run_server.command\")",
+      "Bash(ls \"/Users/essential/Documents/GitHub/DFN model simulator\\(ref. PyBaMM\\)/templates/\")",
+      "Bash(pip3 install:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/essential/Documents/GitHub/DFN model simulator(originated by PyBaMM)",
+      "/Users/essential/Documents/GitHub/DFN model simulator(ref by PyBaMM)",
+      "/Users/essential/Documents/GitHub"
+    ]
+  }
+}

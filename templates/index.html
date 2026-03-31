@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DFN 배터리 방전 시뮬레이터</title>
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<style>
+  :root {
+    --blue:   #2563eb;
+    --blue-l: #eff6ff;
+    --green:  #16a34a;
+    --gray:   #f1f5f9;
+    --border: #e2e8f0;
+    --text:   #1e293b;
+    --muted:  #64748b;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc;
+         color: var(--text); min-height: 100vh; }
+
+  /* ── Header ── */
+  header {
+    background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+    color: #fff; padding: 20px 32px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 2px 12px rgba(37,99,235,.35);
+  }
+  header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; }
+  header p  { font-size: .85rem; opacity: .8; margin-top: 2px; }
+  .badge {
+    background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35);
+    border-radius: 20px; padding: 3px 10px; font-size: .75rem; font-weight: 600;
+    margin-left: auto; white-space: nowrap;
+  }
+
+  /* ── Layout ── */
+  .layout { display: grid; grid-template-columns: 340px 1fr;
+            gap: 24px; padding: 24px 32px; max-width: 1400px; margin: 0 auto; }
+
+  /* ── Panel ── */
+  .panel {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px;
+  }
+  .panel-title {
+    font-size: .8rem; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+    padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .panel-title-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  }
+  .panel-title-row .panel-title { margin: 0; padding: 0; border: none; }
+
+  /* ── Form Controls ── */
+  .field { margin-bottom: 16px; }
+  label  { display: block; font-size: .85rem; font-weight: 600;
+           color: var(--text); margin-bottom: 5px; }
+  label span { font-weight: 400; color: var(--muted); font-size: .8rem; }
+
+  .seg-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .seg-btn {
+    flex: 1; padding: 8px 10px; border: 1.5px solid var(--border);
+    border-radius: 7px; background: #fff; cursor: pointer;
+    font-size: .85rem; font-weight: 600; color: var(--muted);
+    transition: all .15s; text-align: center; min-width: 70px;
+  }
+  .seg-btn:hover  { border-color: var(--blue); color: var(--blue); }
+  .seg-btn.active { border-color: var(--blue); background: var(--blue-l);
+                    color: var(--blue); }
+
+  .slider-row { display: flex; align-items: center; gap: 10px; }
+  .slider-row input[type=range] { flex: 1; accent-color: var(--blue); }
+  .slider-val {
+    min-width: 46px; text-align: right; font-size: .85rem;
+    font-weight: 700; color: var(--blue);
+  }
+
+  /* recipe toggle */
+  .toggle-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .toggle { position: relative; width: 40px; height: 22px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track {
+    position: absolute; inset: 0; background: #cbd5e1;
+    border-radius: 22px; cursor: pointer; transition: background .2s;
+  }
+  .toggle input:checked + .toggle-track { background: var(--blue); }
+  .toggle-track::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 16px; height: 16px; background: #fff; border-radius: 50%;
+    transition: transform .2s;
+  }
+  .toggle input:checked + .toggle-track::after { transform: translateX(18px); }
+  .recipe-box {
+    background: var(--gray); border-radius: 8px; padding: 14px 14px 6px;
+    transition: opacity .2s;
+  }
+  .recipe-box.disabled { opacity: .35; pointer-events: none; }
+
+  /* wt% bar */
+  .wt-bar {
+    height: 8px; border-radius: 4px; margin-top: 8px;
+    display: flex; overflow: hidden; gap: 1px; background: var(--border);
+  }
+  .wt-bar-am     { background: #3b82f6; transition: flex .2s; }
+  .wt-bar-ca     { background: #f59e0b; transition: flex .2s; }
+  .wt-bar-binder { background: #ec4899; transition: flex .2s; }
+  .wt-legend { display: flex; gap: 10px; margin-top: 6px; flex-wrap: wrap; }
+  .wt-legend span { font-size: .75rem; color: var(--muted); display: flex;
+                    align-items: center; gap: 4px; }
+  .wt-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  .percolation-badge {
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 7px;
+    padding: 8px 12px; margin-top: 10px; font-size: .8rem; color: #166534;
+    display: none;
+  }
+  .percolation-badge b { font-weight: 700; }
+
+  /* Run button */
+  .run-btn {
+    width: 100%; padding: 13px; border: none; border-radius: 8px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer;
+    letter-spacing: .02em; transition: opacity .15s, transform .1s;
+    box-shadow: 0 3px 10px rgba(37,99,235,.35); margin-top: 8px;
+  }
+  .run-btn:hover   { opacity: .92; }
+  .run-btn:active  { transform: scale(.98); }
+  .run-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* ── Right side ── */
+  .right-col { display: flex; flex-direction: column; gap: 18px; }
+
+  /* chart toggle */
+  .chart-tabs { display: flex; gap: 6px; }
+  .tab-btn {
+    padding: 6px 16px; border: 1.5px solid var(--border); border-radius: 6px;
+    background: #fff; cursor: pointer; font-size: .83rem; font-weight: 600;
+    color: var(--muted); transition: all .15s;
+  }
+  .tab-btn.active { border-color: var(--blue); background: var(--blue-l);
+                    color: var(--blue); }
+
+  #chart { width: 100%; height: 420px; }
+
+  /* status bar */
+  .status-bar {
+    font-size: .82rem; color: var(--muted); padding: 6px 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .spinner {
+    width: 15px; height: 15px; border: 2px solid #e2e8f0;
+    border-top-color: var(--blue); border-radius: 50%;
+    animation: spin .7s linear infinite; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* summary cards */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .summary-card { background: var(--gray); border-radius: 8px; padding: 12px 14px; text-align: center; }
+  .summary-card .val { font-size: 1.3rem; font-weight: 700; color: var(--blue); }
+  .summary-card .lbl { font-size: .72rem; color: var(--muted); margin-top: 2px;
+                        text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ── Comparison list ── */
+  .compare-empty {
+    text-align: center; color: var(--muted); font-size: .84rem; padding: 18px 0;
+  }
+  .compare-list { display: flex; flex-direction: column; gap: 8px; }
+  .compare-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--gray); border-radius: 8px; padding: 10px 12px;
+    border-left: 4px solid;
+  }
+  .compare-item .ci-info { flex: 1; min-width: 0; }
+  .compare-item .ci-label {
+    font-size: .88rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .compare-item .ci-sub {
+    font-size: .76rem; color: var(--muted); margin-top: 2px;
+  }
+  .compare-item .ci-stats {
+    display: flex; gap: 14px; text-align: right;
+  }
+  .compare-item .ci-stat-val { font-size: .9rem; font-weight: 700; }
+  .compare-item .ci-stat-lbl { font-size: .68rem; color: var(--muted); }
+  .ci-remove {
+    background: none; border: none; cursor: pointer; color: #94a3b8;
+    font-size: 1.1rem; line-height: 1; padding: 2px 4px; border-radius: 4px;
+    transition: color .15s, background .15s; flex-shrink: 0;
+  }
+  .ci-remove:hover { color: #dc2626; background: #fef2f2; }
+
+  .clear-btn {
+    padding: 5px 12px; border: 1.5px solid #fca5a5; border-radius: 6px;
+    background: #fff; color: #dc2626; font-size: .78rem; font-weight: 600;
+    cursor: pointer; transition: all .15s;
+  }
+  .clear-btn:hover { background: #fef2f2; }
+
+  /* download buttons */
+  .dl-row { display: flex; gap: 10px; }
+  .dl-btn {
+    flex: 1; padding: 10px; border-radius: 8px; font-size: .88rem;
+    font-weight: 600; cursor: pointer; border: 1.5px solid;
+    transition: all .15s; text-align: center;
+  }
+  .dl-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .dl-csv { border-color: #16a34a; color: #16a34a; background: #f0fdf4; }
+  .dl-csv:hover:not(:disabled) { background: #dcfce7; }
+  .dl-png { border-color: #9333ea; color: #9333ea; background: #faf5ff; }
+  .dl-png:hover:not(:disabled) { background: #f3e8ff; }
+
+  /* error toast */
+  .error-box {
+    display: none; background: #fef2f2; border: 1px solid #fecaca;
+    border-radius: 8px; padding: 12px 16px; color: #b91c1c; font-size: .85rem;
+  }
+
+  /* placeholder */
+  .chart-placeholder {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 420px; color: var(--muted); gap: 12px;
+  }
+  .chart-placeholder svg { opacity: .3; }
+  .chart-placeholder p { font-size: .9rem; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>⚡ DFN 배터리 방전 시뮬레이터</h1>
+    <p>Doyle-Fuller-Newman Model · PyBaMM-Faithful</p>
+  </div>
+  <span class="badge">Chen2020 / Prada2013</span>
+</header>
+
+<div class="layout">
+
+  <!-- ── LEFT PANEL ── -->
+  <div>
+    <div class="panel">
+      <div class="panel-title">양극 재료</div>
+
+      <div class="field">
+        <label>양극 활물질 종류</label>
+        <div id="mat-group" style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:6px;">
+            <button class="seg-btn active" data-val="NCM" style="flex:1;">NCM811</button>
+            <button class="seg-btn" data-val="LFP" style="flex:1;">LFP</button>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="seg-btn" data-val="LMFP64" style="flex:1;">LMFP64</button>
+            <button class="seg-btn" data-val="LMFP73" style="flex:1;">LMFP73</button>
+            <button class="seg-btn" data-val="LMFP82" style="flex:1;">LMFP82</button>
+          </div>
+        </div>
+        <div id="mat-desc" style="margin-top:6px;font-size:.78rem;color:var(--muted);">
+          NCM811 — 고에너지밀도, 높은 전압 (3.5~4.2V)
+        </div>
+      </div>
+
+      <div class="field">
+        <label>C-rate <span>(방전율)</span></label>
+        <div class="slider-row">
+          <input type="range" id="crate-slider" min="0.1" max="5" step="0.1" value="1.0">
+          <span class="slider-val" id="crate-val">1.0 C</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:var(--muted);margin-top:2px;">
+          <span>0.1C (느림)</span><span>5C (빠름)</span>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+
+      <!-- Recipe toggle -->
+      <div class="panel-title">전극 레시피 (선택)</div>
+      <div class="toggle-row">
+        <label class="toggle">
+          <input type="checkbox" id="recipe-toggle">
+          <span class="toggle-track"></span>
+        </label>
+        <span style="font-size:.85rem;font-weight:600;">레시피 직접 입력</span>
+      </div>
+
+      <div class="recipe-box disabled" id="recipe-box">
+
+        <!-- CA1 selection -->
+        <div class="field">
+          <label>도전재 1 (CA1) 종류</label>
+          <select id="ca1-select" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:.85rem;color:var(--text);outline:none;" onchange="updatePercPreview()">
+            <option value="SuperP">Super P (Carbon Black, 0D)</option>
+            <option value="VGCF">VGCF (기상성장 탄소섬유, 1D)</option>
+            <option value="MWCNT">MWCNT (다중벽 탄소나노튜브, 1D)</option>
+            <option value="Graphene">Graphene / rGO (2D)</option>
+            <option value="KS6">KS6 (플레이크 흑연, 2D)</option>
+          </select>
+        </div>
+
+        <!-- CA2 toggle -->
+        <div class="toggle-row" style="margin-bottom:8px;">
+          <label class="toggle">
+            <input type="checkbox" id="ca2-toggle" onchange="toggleCA2()">
+            <span class="toggle-track"></span>
+          </label>
+          <span style="font-size:.82rem;font-weight:600;">도전재 혼합 (Bauhofer-Kovacs)</span>
+        </div>
+
+        <div id="ca2-box" style="display:none;background:#fff;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+          <div class="field" style="margin-bottom:10px;">
+            <label>도전재 2 (CA2) 종류</label>
+            <select id="ca2-select" style="width:100%;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:.85rem;color:var(--text);outline:none;" onchange="updatePercPreview()">
+              <option value="VGCF">VGCF (기상성장 탄소섬유, 1D)</option>
+              <option value="MWCNT">MWCNT (다중벽 탄소나노튜브, 1D)</option>
+              <option value="SuperP">Super P (Carbon Black, 0D)</option>
+              <option value="Graphene">Graphene / rGO (2D)</option>
+              <option value="KS6">KS6 (플레이크 흑연, 2D)</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:4px;">
+            <label>CA2 비율 <span id="ca2-ratio-lbl">30%</span></label>
+            <div class="slider-row">
+              <input type="range" id="ca2-ratio" min="5" max="95" step="5" value="30"
+                     oninput="document.getElementById('ca2-ratio-lbl').textContent=this.value+'%'; document.getElementById('ca2-ratio-val').textContent=this.value+'%'; updatePercPreview();">
+              <span class="slider-val" id="ca2-ratio-val">30%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted);margin-top:1px;">
+              <span>CA1 많음</span><span>CA2 많음</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total CA wt% -->
+        <div class="field">
+          <label>도전재 총 wt% <span id="wt-ca-lbl"></span></label>
+          <div class="slider-row">
+            <input type="range" id="wt-ca" min="0.5" max="20" step="0.5" value="2.0" oninput="updateRecipe()">
+            <span class="slider-val" id="wt-ca-val">2.0%</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>바인더 wt%</label>
+          <div class="slider-row">
+            <input type="range" id="wt-binder" min="0.5" max="15" step="0.5" value="2.0" oninput="updateRecipe()">
+            <span class="slider-val" id="wt-b-val">2.0%</span>
+          </div>
+        </div>
+
+        <!-- Composition bar -->
+        <div style="margin-top:2px;font-size:.78rem;font-weight:600;color:var(--muted);">조성 비율</div>
+        <div class="wt-bar">
+          <div class="wt-bar-am" id="bar-am"></div>
+          <div class="wt-bar-ca" id="bar-ca"></div>
+          <div class="wt-bar-binder" id="bar-binder"></div>
+        </div>
+        <div class="wt-legend">
+          <span><span class="wt-dot" style="background:#3b82f6;"></span>AM <b id="lbl-am">96.0%</b></span>
+          <span><span class="wt-dot" style="background:#f59e0b;"></span>CA <b id="lbl-ca">2.0%</b></span>
+          <span><span class="wt-dot" style="background:#ec4899;"></span>Binder <b id="lbl-b">2.0%</b></span>
+        </div>
+
+        <div class="percolation-badge" id="perc-badge"></div>
+      </div>
+
+      <button class="run-btn" id="run-btn" onclick="runSim()">
+        ▶ 시뮬레이션 실행
+      </button>
+
+      <div class="status-bar" style="margin-top:10px;">
+        <div class="spinner" id="spinner"></div>
+        <span id="status-msg">파라미터를 설정하고 실행하세요.</span>
+      </div>
+      <div class="error-box" id="error-box"></div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT COLUMN ── -->
+  <div class="right-col">
+
+    <!-- Chart panel -->
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+        <div class="panel-title" style="margin:0;border:none;padding:0;flex:1;">
+          방전 곡선
+        </div>
+        <div class="chart-tabs">
+          <button class="tab-btn active" id="tab-time" onclick="setTab('time')">시간 기준</button>
+          <button class="tab-btn" id="tab-cap" onclick="setTab('cap')">용량 기준</button>
+        </div>
+      </div>
+
+      <div id="chart-wrap">
+        <div class="chart-placeholder" id="placeholder">
+          <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+            <rect x="5" y="35" width="8" height="20" rx="2" fill="#94a3b8"/>
+            <rect x="17" y="25" width="8" height="30" rx="2" fill="#94a3b8"/>
+            <rect x="29" y="15" width="8" height="40" rx="2" fill="#94a3b8"/>
+            <rect x="41" y="20" width="8" height="35" rx="2" fill="#94a3b8"/>
+          </svg>
+          <p>시뮬레이션 결과가 여기에 표시됩니다</p>
+        </div>
+        <div id="chart" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- Comparison list -->
+    <div class="panel" id="compare-panel">
+      <div class="panel-title-row">
+        <div class="panel-title">비교 목록</div>
+        <button class="clear-btn" id="clear-btn" onclick="clearAll()" style="display:none;">
+          전체 초기화
+        </button>
+      </div>
+      <div id="compare-list">
+        <div class="compare-empty" id="compare-empty">
+          시뮬레이션을 실행하면 여기에 결과가 추가됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary cards (last run) -->
+    <div class="panel" id="summary-panel" style="display:none;">
+      <div class="panel-title" id="summary-title">최근 실행 결과</div>
+      <div class="summary-grid">
+        <div class="summary-card">
+          <div class="val" id="s-v-init">—</div>
+          <div class="lbl">초기 전압 [V]</div>
+        </div>
+        <div class="summary-card">
+          <div class="val" id="s-v-final">—</div>
+          <div class="lbl">최종 전압 [V]</div>
+        </div>
+        <div class="summary-card">
+          <div class="val" id="s-cap">—</div>
+          <div class="lbl">방전 용량 [Ah]</div>
+        </div>
+        <div class="summary-card">
+          <div class="val" id="s-dur">—</div>
+          <div class="lbl">방전 시간 [h]</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download (last run) -->
+    <div class="panel" id="dl-panel" style="display:none;">
+      <div class="panel-title">결과 다운로드 (최근 실행)</div>
+      <div class="dl-row">
+        <button class="dl-btn dl-csv" onclick="download('csv')">
+          📄 CSV 다운로드
+        </button>
+        <button class="dl-btn dl-png" onclick="download('png')">
+          🖼️ PNG 다운로드
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentTab   = 'time';
+let compareList  = [];   // [{id, label, subLabel, color, data}]
+let runCounter   = 0;
+
+// Color palette (cycles through when list grows)
+const PALETTE = [
+  '#2563eb','#16a34a','#ea580c','#d97706',
+  '#7c3aed','#db2777','#0891b2','#65a30d',
+  '#dc2626','#9333ea','#0284c7','#b45309',
+];
+
+const MAT_DESC = {
+  NCM:    'NCM811 — 고에너지밀도, 높은 전압 (3.5~4.2V)',
+  LFP:    'LFP — 긴 수명, 평탄한 방전 플래토 (3.2~3.4V)',
+  LMFP64: 'LMFP64 — LiMn₀.₆Fe₀.₄PO₄, Fe 플래토(3.45V) + Mn 플래토(4.1V)',
+  LMFP73: 'LMFP73 — LiMn₀.₇Fe₀.₃PO₄, Fe 30% / Mn 70% 용량 배분',
+  LMFP82: 'LMFP82 — LiMn₀.₈Fe₀.₂PO₄, Fe 20% / Mn 80% 용량 배분 (고전압)',
+};
+
+// ─── Material selector ────────────────────────────────────────────────────────
+document.querySelectorAll('#mat-group .seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#mat-group .seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('mat-desc').textContent = MAT_DESC[btn.dataset.val] || '';
+  });
+});
+
+// ─── C-rate slider ────────────────────────────────────────────────────────────
+const crateSlider = document.getElementById('crate-slider');
+const crateVal    = document.getElementById('crate-val');
+crateSlider.addEventListener('input', () => {
+  crateVal.textContent = parseFloat(crateSlider.value).toFixed(1) + ' C';
+});
+
+// ─── Recipe toggle ────────────────────────────────────────────────────────────
+document.getElementById('recipe-toggle').addEventListener('change', e => {
+  document.getElementById('recipe-box').classList.toggle('disabled', !e.target.checked);
+  if (e.target.checked) updatePercPreview();
+  else document.getElementById('perc-badge').style.display = 'none';
+});
+
+// ─── CA2 toggle ───────────────────────────────────────────────────────────────
+function toggleCA2() {
+  const on = document.getElementById('ca2-toggle').checked;
+  document.getElementById('ca2-box').style.display = on ? 'block' : 'none';
+  updatePercPreview();
+}
+
+// ─── Recipe sliders ───────────────────────────────────────────────────────────
+function updateRecipe() {
+  const ca = parseFloat(document.getElementById('wt-ca').value);
+  const b  = parseFloat(document.getElementById('wt-binder').value);
+  const am = Math.max(0, 100 - ca - b);
+
+  document.getElementById('wt-ca-val').textContent = ca.toFixed(1) + '%';
+  document.getElementById('wt-b-val').textContent  = b.toFixed(1) + '%';
+  document.getElementById('lbl-am').textContent    = am.toFixed(1) + '%';
+  document.getElementById('lbl-ca').textContent    = ca.toFixed(1) + '%';
+  document.getElementById('lbl-b').textContent     = b.toFixed(1) + '%';
+
+  document.getElementById('bar-am').style.flex     = am;
+  document.getElementById('bar-ca').style.flex     = ca;
+  document.getElementById('bar-binder').style.flex = b;
+
+  const warn = document.getElementById('wt-ca-lbl');
+  warn.textContent = am < 70 ? ` (⚠ AM=${am.toFixed(0)}% 낮음)` : '';
+
+  updatePercPreview();
+}
+updateRecipe();
+
+// ─── Live percolation preview (B-K) ──────────────────────────────────────────
+let _percTimer = null;
+function updatePercPreview() {
+  // Only preview when recipe is enabled
+  if (!document.getElementById('recipe-toggle').checked) return;
+  clearTimeout(_percTimer);
+  _percTimer = setTimeout(async () => {
+    const ca     = parseFloat(document.getElementById('wt-ca').value);
+    const b      = parseFloat(document.getElementById('wt-binder').value);
+    const am     = Math.max(0, 100 - ca - b);
+    const ca1    = document.getElementById('ca1-select').value;
+    const useCA2 = document.getElementById('ca2-toggle').checked;
+    const ca2    = useCA2 ? document.getElementById('ca2-select').value : null;
+    const ratio  = useCA2 ? parseFloat(document.getElementById('ca2-ratio').value) / 100 : 0;
+    const mat    = document.querySelector('#mat-group .seg-btn.active').dataset.val;
+
+    // Quick preview via simulate-perc endpoint
+    try {
+      const resp = await fetch('/api/perc_preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ material: mat, wt_ca: ca, wt_binder: b,
+                               ca1_type: ca1, ca2_type: ca2, ca2_ratio: ratio }),
+      });
+      if (!resp.ok) return;
+      const d = await resp.json();
+      renderPercBadge(d, ca1, ca2, useCA2);
+    } catch(_) {}
+  }, 300);
+}
+
+function renderPercBadge(d, ca1, ca2, useCA2) {
+  const pb = document.getElementById('perc-badge');
+  pb.style.display = 'block';
+
+  const percColor = d.perc_index >= 1.0 ? '#166534' : '#7f1d1d';
+  const percBg    = d.perc_index >= 1.0 ? '#f0fdf4' : '#fef2f2';
+  const percBorder= d.perc_index >= 1.0 ? '#bbf7d0' : '#fecaca';
+  pb.style.background = percBg;
+  pb.style.borderColor = percBorder;
+  pb.style.color = percColor;
+
+  let html = `<b>B-K 침투 이론 결과</b><br>`;
+  html += `σ_eff = <b>${d.sigma_eff} S/m</b> &nbsp;|&nbsp; ε_s = <b>${d.eps_s}</b> &nbsp;|&nbsp; a = <b>${Number(d.a_p).toLocaleString()} m⁻¹</b><br>`;
+
+  if (useCA2 && ca2) {
+    const status = d.perc_index >= 1.0 ? '✅ 침투 형성' : '❌ 임계값 미달';
+    html += `침투 지수 φ₁/φ_c1 + φ₂/φ_c2 = <b>${d.perc_index}</b> ${status}<br>`;
+    html += `<span style="font-size:.72rem;opacity:.8;">CA1(${ca1}) φ_c_eff=${d.phi_c1_eff} &nbsp; CA2(${ca2}) φ_c_eff=${d.phi_c2_eff}</span>`;
+  } else {
+    const status = d.perc_index >= 1.0 ? '✅ 침투 형성' : '❌ 임계값 미달';
+    html += `φ/φ_c = <b>${d.perc_index}</b> ${status}`;
+  }
+
+  pb.innerHTML = html;
+}
+
+// ─── Chart tab ────────────────────────────────────────────────────────────────
+function setTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-time').classList.toggle('active', tab === 'time');
+  document.getElementById('tab-cap').classList.toggle('active', tab === 'cap');
+  if (compareList.length > 0) renderChart();
+}
+
+// ─── Render Plotly chart (all compareList entries) ────────────────────────────
+function renderChart() {
+  const xLabel = currentTab === 'time' ? '시간 [h]' : '방전 용량 [Ah]';
+
+  const traces = compareList.map(entry => {
+    const x = currentTab === 'time'
+      ? entry.data.t.map(v => +(v / 3600).toFixed(5))
+      : entry.data.cap;
+    return {
+      x, y: entry.data.V,
+      mode: 'lines',
+      line: { color: entry.color, width: 2.5 },
+      name: entry.label,
+      hovertemplate: currentTab === 'time'
+        ? '<b>%{y:.4f} V</b><br>%{x:.3f} h<extra>' + entry.label + '</extra>'
+        : '<b>%{y:.4f} V</b><br>%{x:.4f} Ah<extra>' + entry.label + '</extra>',
+    };
+  });
+
+  const layout = {
+    margin: { l: 56, r: 20, t: 20, b: 50 },
+    xaxis: { title: { text: xLabel, font: { size: 13 } }, gridcolor: '#f1f5f9' },
+    yaxis: { title: { text: '전압 [V]', font: { size: 13 } }, gridcolor: '#f1f5f9' },
+    paper_bgcolor: '#fff', plot_bgcolor: '#fff',
+    font: { family: 'Segoe UI, system-ui, sans-serif', size: 12 },
+    showlegend: true,
+    legend: { x: 0.98, xanchor: 'right', y: 0.98 },
+  };
+
+  document.getElementById('placeholder').style.display = 'none';
+  const chartDiv = document.getElementById('chart');
+  chartDiv.style.display = 'block';
+  Plotly.react('chart', traces, layout, { responsive: true, displayModeBar: true });
+}
+
+// ─── Comparison list UI ───────────────────────────────────────────────────────
+function renderCompareList() {
+  const container = document.getElementById('compare-list');
+  const empty     = document.getElementById('compare-empty');
+  const clearBtn  = document.getElementById('clear-btn');
+
+  if (compareList.length === 0) {
+    container.innerHTML = '';
+    container.appendChild(empty);
+    empty.style.display = 'block';
+    clearBtn.style.display = 'none';
+    return;
+  }
+
+  empty.style.display = 'none';
+  clearBtn.style.display = 'block';
+
+  // Rebuild list
+  container.innerHTML = '';
+  container.appendChild(empty); // keep in DOM, hidden
+
+  const listEl = document.createElement('div');
+  listEl.className = 'compare-list';
+
+  compareList.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'compare-item';
+    item.style.borderLeftColor = entry.color;
+
+    item.innerHTML = `
+      <div class="ci-info">
+        <div class="ci-label">${entry.label}</div>
+        <div class="ci-sub">${entry.subLabel}</div>
+      </div>
+      <div class="ci-stats">
+        <div>
+          <div class="ci-stat-val" style="color:${entry.color}">
+            ${entry.data.summary.capacity.toFixed(3)} Ah
+          </div>
+          <div class="ci-stat-lbl">용량</div>
+        </div>
+        <div>
+          <div class="ci-stat-val" style="color:${entry.color}">
+            ${entry.data.summary.duration_h.toFixed(2)} h
+          </div>
+          <div class="ci-stat-lbl">시간</div>
+        </div>
+        <div>
+          <div class="ci-stat-val" style="color:${entry.color}">
+            ${entry.data.summary.V_initial.toFixed(3)} V
+          </div>
+          <div class="ci-stat-lbl">초기전압</div>
+        </div>
+      </div>
+      <button class="ci-remove" title="제거" onclick="removeRun('${entry.id}')">×</button>
+    `;
+    listEl.appendChild(item);
+  });
+
+  container.appendChild(listEl);
+}
+
+function removeRun(id) {
+  compareList = compareList.filter(e => e.id !== id);
+  renderCompareList();
+  if (compareList.length === 0) {
+    document.getElementById('placeholder').style.display = 'flex';
+    document.getElementById('chart').style.display = 'none';
+  } else {
+    renderChart();
+  }
+}
+
+function clearAll() {
+  compareList = [];
+  renderCompareList();
+  document.getElementById('placeholder').style.display = 'flex';
+  document.getElementById('chart').style.display = 'none';
+  document.getElementById('summary-panel').style.display = 'none';
+  document.getElementById('dl-panel').style.display = 'none';
+}
+
+// ─── Run simulation ───────────────────────────────────────────────────────────
+async function runSim() {
+  const mat       = document.querySelector('#mat-group .seg-btn.active').dataset.val;
+  const crate     = parseFloat(crateSlider.value);
+  const useRecipe = document.getElementById('recipe-toggle').checked;
+  const wt_ca     = parseFloat(document.getElementById('wt-ca').value);
+  const wt_binder = parseFloat(document.getElementById('wt-binder').value);
+  const ca1_type  = document.getElementById('ca1-select').value;
+  const useCA2    = document.getElementById('ca2-toggle').checked;
+  const ca2_type  = useCA2 ? document.getElementById('ca2-select').value : null;
+  const ca2_ratio = useCA2 ? parseFloat(document.getElementById('ca2-ratio').value) / 100 : 0;
+
+  if (useRecipe && wt_ca + wt_binder >= 100) {
+    showError('CA + Binder 합이 100%를 초과합니다.');
+    return;
+  }
+
+  setLoading(true);
+  document.getElementById('error-box').style.display = 'none';
+
+  try {
+    const resp = await fetch('/api/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        material: mat, crate, use_recipe: useRecipe,
+        wt_ca, wt_binder,
+        ca1_type, ca2_type, ca2_ratio,
+      }),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      showError(data.error || '시뮬레이션 실패');
+      return;
+    }
+
+    // Build label
+    const cr = crate.toFixed(1);
+    let label    = `${mat} ${cr}C`;
+    let subLabel = '';
+    if (useRecipe) {
+      const am   = (100 - wt_ca - wt_binder).toFixed(1);
+      const caStr = useCA2
+        ? `${ca1_type}:${(wt_ca*(1-ca2_ratio)).toFixed(1)}%+${ca2_type}:${(wt_ca*ca2_ratio).toFixed(1)}%`
+        : `${ca1_type} ${wt_ca}%`;
+      label    += ` (${caStr}, B:${wt_binder}%)`;
+      subLabel  = `AM ${am}% · ${caStr} · Binder ${wt_binder}%`;
+    } else {
+      subLabel = `기본 레시피`;
+    }
+
+    const color = PALETTE[runCounter % PALETTE.length];
+    runCounter++;
+
+    compareList.push({ id: Date.now().toString(), label, subLabel, color, data });
+
+    renderChart();
+    renderCompareList();
+
+    document.getElementById('summary-title').textContent = `최근 실행: ${label}`;
+    document.getElementById('s-v-init').textContent  = data.summary.V_initial.toFixed(4);
+    document.getElementById('s-v-final').textContent = data.summary.V_final.toFixed(4);
+    document.getElementById('s-cap').textContent     = data.summary.capacity.toFixed(3);
+    document.getElementById('s-dur').textContent     = data.summary.duration_h.toFixed(3);
+    document.getElementById('summary-panel').style.display = 'block';
+    document.getElementById('dl-panel').style.display      = 'block';
+
+    // Update percolation badge with simulation result
+    if (data.sigma_info) {
+      renderPercBadge(data.sigma_info, ca1_type, ca2_type, useCA2);
+    }
+
+    setStatus(`완료 — ${data.summary.n_steps}스텝, 방전 ${data.summary.duration_h.toFixed(2)}h · 비교 목록: ${compareList.length}개`);
+  } catch(err) {
+    showError('서버 연결 오류: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+// ─── Download ─────────────────────────────────────────────────────────────────
+function download(fmt) {
+  window.location.href = `/api/download/${fmt}`;
+}
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
+function setLoading(on) {
+  document.getElementById('spinner').style.display = on ? 'block' : 'none';
+  document.getElementById('run-btn').disabled = on;
+  if (on) setStatus('시뮬레이션 계산 중…');
+}
+function setStatus(msg) {
+  document.getElementById('status-msg').textContent = msg;
+}
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = '오류: ' + msg;
+  box.style.display = 'block';
+  setStatus('시뮬레이션 실패.');
+}
+</script>
+</body>
+</html>
