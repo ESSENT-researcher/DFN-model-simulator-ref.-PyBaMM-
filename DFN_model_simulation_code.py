@@ -243,17 +243,17 @@ def load_prada2013_params():
     """
     p = {}
     p["T"] = 298.15
-    # Electrode area from paper: A_c=1694 cm², A_a=1755 cm²; use LFP electrode area
-    p["A_cell"] = 0.1694   # m²
-    p["H"] = p["A_cell"] ** 0.5
-    p["W"] = p["A_cell"] ** 0.5
+    # Electrode area from paper: A_c=1694 cm², A_a=1755 cm²; use geometric mean
+    p["H"] = 0.1694 ** 0.5
+    p["W"] = 0.1694 ** 0.5
+    p["A_cell"] = 0.1694   # m² (LFP electrode area, Table II)
 
     # Electrode thicknesses (Table II)
     p["L_n"] = 3.4e-5      # 34 µm (graphite, measured from SEM)
-    p["L_s"] = 2.5e-5      # 25 µm (separator)
+    p["L_s"] = 2.5e-5      # 25 µm (separator, from PyBaMM Prada2013)
     p["L_p"] = 7.0e-5      # 70 µm (LFP, Table II)
 
-    # Porosity — kept from PyBaMM Prada2013
+    # Porosity — eps_e = 1 - eps_s - eps_filler; kept from PyBaMM Prada2013
     p["eps_e_n"] = 0.36
     p["eps_e_s"] = 0.45
     p["eps_e_p"] = 0.426
@@ -275,7 +275,7 @@ def load_prada2013_params():
     p["c_s_max_p"] = 22806.0
 
     # Initial stoichiometry: fully charged state (Hypothesis 2, Table II)
-    # graphite x_max=0.80, LFP y_min=0.03
+    # graphite: x_max = 0.80, LFP: y_min = 0.03
     p["c_s_init_n"] = 31370.0 * 0.80   # = 25096
     p["c_s_init_p"] = 22806.0 * 0.03   # = 684.18
 
@@ -296,7 +296,7 @@ def load_prada2013_params():
     p["k_n"] = 7.9e-7
     p["k_p"] = 6.0e-7
 
-    p["c_e_init"] = 1000.0  # 1 mol/l = 1000 mol/m³ (Table II)
+    p["c_e_init"] = 1000.0  # 1 mol/l (Table II: c_e = 1 mol/l)
     p["t_plus"] = 0.36
     p["therm_factor"] = 1.0
 
@@ -434,24 +434,6 @@ def OCP_graphite_Chen2020(sto):
     return U
 
 
-def OCP_graphite_Prada2013(sto):
-    """Open-circuit potential for Graphite negative electrode (Prada2013).
-    U_a = 0.6379 + 0.5416*exp(-305.5309*x)
-          + 0.044*tanh((x-0.1958)/0.1088)
-          - 0.1978*tanh((x-1.0571)/0.0854)
-          - 0.6875*tanh((x+0.0117)/0.0529)
-          - 0.0175*tanh((x-0.5692)/0.0875)
-    """
-    x = np.clip(sto, 1e-6, 1.0 - 1e-6)
-    U = (0.6379
-         + 0.5416 * np.exp(-305.5309 * x)
-         + 0.044  * np.tanh((x - 0.1958) / 0.1088)
-         - 0.1978 * np.tanh((x - 1.0571) / 0.0854)
-         - 0.6875 * np.tanh((x + 0.0117) / 0.0529)
-         - 0.0175 * np.tanh((x - 0.5692) / 0.0875))
-    return U
-
-
 def OCP_nmc_Chen2020(sto):
     """Open-circuit potential for NMC811 positive electrode (Chen2020).
     sto = c_s_surf / c_s_max, clipped to (0, 1).
@@ -477,16 +459,34 @@ def OCP_LFP_Afshar2017(sto):
 def OCP_LFP_Prada2013(sto):
     """Open-circuit potential for LFP (LiFePO4) positive electrode (Prada2013).
     U_ck = 3.4323
-           - 0.8428 * exp(-80.2493*(1-y)^1.3198)
+           - 0.8428  * exp(-80.2493*(1-y)^1.3198)
            - 3.2474e-6 * exp(20.2645*(1-y)^3.8003)
            + 3.2482e-6 * exp(20.2646*(1-y)^3.7995)
     """
     y = np.clip(sto, 1e-6, 1.0 - 1e-6)
     z = 1.0 - y
     U = (3.4323
-         - 0.8428  * np.exp(-80.2493 * z**1.3198)
-         - 3.2474e-6 * np.exp(20.2645 * z**3.8003)
-         + 3.2482e-6 * np.exp(20.2646 * z**3.7995))
+         - 0.8428    * np.exp(-80.2493 * z**1.3198)
+         - 3.2474e-6 * np.exp(20.2645  * z**3.8003)
+         + 3.2482e-6 * np.exp(20.2646  * z**3.7995))
+    return U
+
+
+def OCP_graphite_Prada2013(sto):
+    """Open-circuit potential for Graphite negative electrode (Prada2013).
+    U_a = 0.6379 + 0.5416*exp(-305.5309*x)
+          + 0.044 *tanh((x-0.1958)/0.1088)
+          - 0.1978*tanh((x-1.0571)/0.0854)
+          - 0.6875*tanh((x+0.0117)/0.0529)
+          - 0.0175*tanh((x-0.5692)/0.0875)
+    """
+    x = np.clip(sto, 1e-6, 1.0 - 1e-6)
+    U = (0.6379
+         + 0.5416 * np.exp(-305.5309 * x)
+         + 0.044  * np.tanh((x - 0.1958) / 0.1088)
+         - 0.1978 * np.tanh((x - 1.0571) / 0.0854)
+         - 0.6875 * np.tanh((x + 0.0117) / 0.0529)
+         - 0.0175 * np.tanh((x - 0.5692) / 0.0875))
     return U
 
 

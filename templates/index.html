@@ -441,7 +441,7 @@
         </div>
         <div class="summary-card">
           <div class="val" id="s-cap">—</div>
-          <div class="lbl">방전 용량 [Ah]</div>
+          <div class="lbl">방전 용량 [mAh/g]</div>
         </div>
         <div class="summary-card">
           <div class="val" id="s-dur">—</div>
@@ -607,7 +607,7 @@ function setTab(tab) {
 
 // ─── Render Plotly chart (all compareList entries) ────────────────────────────
 function renderChart() {
-  const xLabel = currentTab === 'time' ? '시간 [h]' : '방전 용량 [Ah]';
+  const xLabel = currentTab === 'time' ? '시간 [h]' : '방전 용량 [mAh/g]';
 
   const traces = compareList.map(entry => {
     const x = currentTab === 'time'
@@ -620,7 +620,7 @@ function renderChart() {
       name: entry.label,
       hovertemplate: currentTab === 'time'
         ? '<b>%{y:.4f} V</b><br>%{x:.3f} h<extra>' + entry.label + '</extra>'
-        : '<b>%{y:.4f} V</b><br>%{x:.4f} Ah<extra>' + entry.label + '</extra>',
+        : '<b>%{y:.4f} V</b><br>%{x:.2f} mAh/g<extra>' + entry.label + '</extra>',
     };
   });
 
@@ -677,7 +677,7 @@ function renderCompareList() {
       <div class="ci-stats">
         <div>
           <div class="ci-stat-val" style="color:${entry.color}">
-            ${entry.data.summary.capacity.toFixed(3)} Ah
+            ${entry.data.summary.capacity.toFixed(1)} mAh/g
           </div>
           <div class="ci-stat-lbl">용량</div>
         </div>
@@ -785,7 +785,7 @@ async function runSim() {
     document.getElementById('summary-title').textContent = `최근 실행: ${label}`;
     document.getElementById('s-v-init').textContent  = data.summary.V_initial.toFixed(4);
     document.getElementById('s-v-final').textContent = data.summary.V_final.toFixed(4);
-    document.getElementById('s-cap').textContent     = data.summary.capacity.toFixed(3);
+    document.getElementById('s-cap').textContent     = data.summary.capacity.toFixed(1);
     document.getElementById('s-dur').textContent     = data.summary.duration_h.toFixed(3);
     document.getElementById('summary-panel').style.display = 'block';
     document.getElementById('dl-panel').style.display      = 'block';

@@ -127,9 +127,11 @@ def simulate():
 
     Q_cell = p["Q_cell"]
     cap_Ah = t * Q_cell * C_rate / 3600.0
+    mass_AM_g = p["eps_s_p"] * p["L_p"] * p["A_cell"] * p["rho_AM"] * 1e6
+    cap_mAhg = cap_Ah * 1000.0 / mass_AM_g
     V_list   = V.tolist()
     t_list   = t.tolist()
-    cap_list = cap_Ah.tolist()
+    cap_list = cap_mAhg.tolist()
 
     # Percolation conductivity preview (Bauhofer-Kovacs model)
     sigma_info = None
@@ -165,7 +167,7 @@ def simulate():
     summary = {
         "V_initial": round(float(V[0]), 4),
         "V_final":   round(float(V[-1]), 4),
-        "capacity":  round(float(cap_Ah[-1]), 4),
+        "capacity":  round(float(cap_mAhg[-1]), 2),
         "duration_h": round(float(t[-1]) / 3600, 3),
         "n_steps":   len(t),
     }
@@ -253,9 +255,9 @@ def download_png():
 
     axes[1].plot(cap, V, "g-", lw=2)
     axes[1].axhline(V_min, color="r", ls="--", alpha=0.5)
-    axes[1].set_xlabel("Capacity [Ah]")
+    axes[1].set_xlabel("Specific Capacity [mAh/g]")
     axes[1].set_ylabel("Voltage [V]")
-    axes[1].set_title("Voltage vs Capacity")
+    axes[1].set_title("Voltage vs Specific Capacity")
     axes[1].grid(True, alpha=0.3)
 
     plt.tight_layout()
