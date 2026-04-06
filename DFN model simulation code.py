@@ -156,7 +156,7 @@ def load_material_params(material="NCM"):
             "k_p": 6.0e-7,
             "rho_AM": 3.60,
             "OCP_p": OCP_LFP_Prada2013,
-            "V_min": 2.0,
+            "V_min": 2.5,
             "V_max": 3.6,
             "sto_p_init": 0.05,
             "sto_p_full": 0.95,
@@ -1762,6 +1762,7 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
     ax.set_xlabel('Time [hours]')
     ax.set_ylabel('Cell Voltage [V]')
     ax.set_title('Discharge Curve')
+    ax.margins(x=0.05)
     ax.grid(True, alpha=0.3)
 
     # Final state
@@ -1779,6 +1780,7 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
     ax.set_xlabel('Position [um]')
     ax.set_ylabel('c_e [mol/m3]')
     ax.set_title('Final Electrolyte Concentration')
+    ax.margins(x=0.05)
     ax.grid(True, alpha=0.3)
 
     ax = axes[1, 0]
@@ -1791,6 +1793,7 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
     ax.set_xlabel('Position [um]')
     ax.set_ylabel('Surface Stoichiometry')
     ax.set_title('Final Surface SOC')
+    ax.margins(x=0.05)
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -1801,6 +1804,7 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
     ax.set_xlabel('Position [um]')
     ax.set_ylabel('Potential [V]')
     ax.set_title('Final Potentials')
+    ax.margins(x=0.05)
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -1898,6 +1902,7 @@ def compare_crates(material="NCM", crates=None, recipe_CA=None,
     ax.set_xlabel("Time [hours]")
     ax.set_ylabel("Voltage [V]")
     ax.set_title("Voltage vs Time")
+    ax.margins(x=0.05)
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -1911,6 +1916,7 @@ def compare_crates(material="NCM", crates=None, recipe_CA=None,
     ax.set_xlabel("Specific Capacity [mAh/g]")
     ax.set_ylabel("Voltage [V]")
     ax.set_title("Voltage vs Specific Capacity")
+    ax.margins(x=0.05)
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -2033,6 +2039,7 @@ if __name__ == "__main__":
         ax.set_xlabel("Specific Capacity [mAh/g]")
         ax.set_ylabel("Voltage [V]")
         ax.set_title(f"DFN: Material Comparison ({cr}C Discharge)")
+        ax.margins(x=0.05)
         ax.legend(fontsize=12)
         ax.grid(True, alpha=0.3)
         plt.tight_layout()
@@ -2070,6 +2077,7 @@ if __name__ == "__main__":
         ax1.set_xlabel("Specific Capacity [mAh/g]")
         ax1.set_ylabel("Voltage [V]")
         ax1.set_title(f"DFN: Recipe Effect ({args.material}, {cr}C)")
+        ax1.margins(x=0.05)
         ax1.legend()
         ax1.grid(True, alpha=0.3)
 
