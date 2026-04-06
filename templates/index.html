@@ -624,18 +624,23 @@ function renderChart() {
     };
   });
 
-  const isCapTab = currentTab === 'capacity';
+  const isCapTab = currentTab === 'cap';
   const layout = {
     margin: { l: 56, r: 20, t: 20, b: 50 },
     xaxis: {
-      title: { text: xLabel, font: { size: 13 } },
+      title: { text: xLabel, font: { size: 16 } },
       gridcolor: '#f1f5f9',
+      linecolor: '#222', linewidth: 2, showline: true,
+      tickfont: { size: 14 },
       ...(isCapTab ? { range: [0, 240], dtick: 20, tick0: 0 } : {}),
     },
     yaxis: {
-      title: { text: '전압 [V]', font: { size: 13 } },
+      title: { text: '전압 [V]', font: { size: 16 } },
       gridcolor: '#f1f5f9',
-      ...(isCapTab ? { range: [0, 4.5], dtick: 0.5, tick0: 0 } : {}),
+      linecolor: '#222', linewidth: 2, showline: true,
+      dtick: 0.5, tick0: 0,
+      tickfont: { size: 14 },
+      ...(isCapTab ? { range: [2.5, 4.5], tick0: 2.5 } : {}),
     },
     paper_bgcolor: '#fff', plot_bgcolor: '#fff',
     font: { family: 'Segoe UI, system-ui, sans-serif', size: 12 },
