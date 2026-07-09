@@ -501,15 +501,15 @@ def OCP_LMFP(sto):
 
     # Two-plateau construction using smooth transitions
     # High voltage region (Mn redox, 4.1V plateau, 60% of capacity)
-    U_Mn = 4.10 - 0.02 * np.tanh(15.0 * (x - 0.05))  # initial drop-in
+    U_Mn = 4.10 - 0.02 * np.tanh(8.0 * (x - 0.05))   # initial drop-in
     # Transition between Mn and Fe plateaus around x=0.6
-    transition = 0.5 * (1.0 + np.tanh(12.0 * (x - 0.60)))
+    transition = 0.5 * (1.0 + np.tanh(5.0 * (x - 0.60)))
     # Fe redox plateau at 3.45V
-    U_Fe = 3.45 - 0.02 * np.tanh(15.0 * (x - 0.95))
+    U_Fe = 3.45 - 0.02 * np.tanh(8.0 * (x - 0.95))
     # Blend the two plateaus
     U = U_Mn * (1.0 - transition) + U_Fe * transition
     # End-of-discharge drop
-    U = U - 0.3 * np.exp(-40.0 * (1.0 - x))
+    U = U - 0.3 * np.exp(-20.0 * (1.0 - x))
     # Start-of-discharge adjustment
     U = U + 0.2 * np.exp(-30.0 * x)
     return U
@@ -519,11 +519,11 @@ def OCP_LMFP64(sto):
     """OCP for LiMn0.6Fe0.4PO4 (LMFP64). Fe=40% capacity → transition at x≈0.40."""
     sto = np.asarray(sto, dtype=np.float64)
     x = np.clip(sto, 1e-4, 1.0 - 1e-4)
-    U_Mn = 4.10 - 0.02 * np.tanh(15.0 * (x - 0.05))
-    transition = 0.5 * (1.0 + np.tanh(12.0 * (x - 0.60)))
-    U_Fe = 3.45 - 0.02 * np.tanh(15.0 * (x - 0.95))
+    U_Mn = 4.10 - 0.02 * np.tanh(8.0 * (x - 0.05))
+    transition = 0.5 * (1.0 + np.tanh(5.0 * (x - 0.60)))
+    U_Fe = 3.45 - 0.02 * np.tanh(8.0 * (x - 0.95))
     U = U_Mn * (1.0 - transition) + U_Fe * transition
-    U = U - 0.3 * np.exp(-40.0 * (1.0 - x))
+    U = U - 0.3 * np.exp(-20.0 * (1.0 - x))
     U = U + 0.2 * np.exp(-30.0 * x)
     return U
 
@@ -532,11 +532,11 @@ def OCP_LMFP73(sto):
     """OCP for LiMn0.7Fe0.3PO4 (LMFP73). Fe=30% capacity → transition at x≈0.70."""
     sto = np.asarray(sto, dtype=np.float64)
     x = np.clip(sto, 1e-4, 1.0 - 1e-4)
-    U_Mn = 4.10 - 0.02 * np.tanh(15.0 * (x - 0.05))
-    transition = 0.5 * (1.0 + np.tanh(12.0 * (x - 0.70)))
-    U_Fe = 3.45 - 0.02 * np.tanh(15.0 * (x - 0.95))
+    U_Mn = 4.10 - 0.02 * np.tanh(8.0 * (x - 0.05))
+    transition = 0.5 * (1.0 + np.tanh(5.0 * (x - 0.70)))
+    U_Fe = 3.45 - 0.02 * np.tanh(8.0 * (x - 0.95))
     U = U_Mn * (1.0 - transition) + U_Fe * transition
-    U = U - 0.3 * np.exp(-40.0 * (1.0 - x))
+    U = U - 0.3 * np.exp(-20.0 * (1.0 - x))
     U = U + 0.2 * np.exp(-30.0 * x)
     return U
 
@@ -545,11 +545,11 @@ def OCP_LMFP82(sto):
     """OCP for LiMn0.8Fe0.2PO4 (LMFP82). Fe=20% capacity → transition at x≈0.80."""
     sto = np.asarray(sto, dtype=np.float64)
     x = np.clip(sto, 1e-4, 1.0 - 1e-4)
-    U_Mn = 4.10 - 0.02 * np.tanh(15.0 * (x - 0.05))
-    transition = 0.5 * (1.0 + np.tanh(12.0 * (x - 0.80)))
-    U_Fe = 3.45 - 0.02 * np.tanh(15.0 * (x - 0.95))
+    U_Mn = 4.10 - 0.02 * np.tanh(8.0 * (x - 0.05))
+    transition = 0.5 * (1.0 + np.tanh(5.0 * (x - 0.80)))
+    U_Fe = 3.45 - 0.02 * np.tanh(8.0 * (x - 0.95))
     U = U_Mn * (1.0 - transition) + U_Fe * transition
-    U = U - 0.3 * np.exp(-40.0 * (1.0 - x))
+    U = U - 0.3 * np.exp(-20.0 * (1.0 - x))
     U = U + 0.2 * np.exp(-30.0 * x)
     return U
 
@@ -669,43 +669,89 @@ def recipe_to_electrode_props(wt_AM, wt_CA, wt_Binder, rho_AM,
 CA_PARAMS = {
     "SuperP": {
         "name": "Super P (Carbon Black, 0D)",
-        "sigma": 5000.0,    # S/m  — Spahr et al. 2011
+        # sigma = effective network conductivity of a compressed pure-CA electrode [S/m]
+        # NOT the bulk crystal value (5000 S/m).  Calibrated to composite cathode
+        # measurements (~1–5 S/m at 5–10 vol%).  Ref: Ryu et al. 2015, Liu et al. 2019.
+        "sigma": 500.0,
         "rho":   2.0,       # g/cm³
         "phi_c": 0.02,      # percolation threshold (vol fraction in solid)
         "t":     1.5,       # transport exponent
         "geometry": "0D",
+        # Particle-CA contact (film) resistance base value [Ω·m²]
+        # 0D: only point contacts → highest contact resistance
+        "R_film": 0.25,
+        # Ionic tortuosity contribution: τ_extra = 1 + tau_factor*(φ/φ_c)^0.5
+        # 0D spheres minimally obstruct ion pathways → lowest tau_factor
+        "tau_factor": 0.03,
+        # AM surface coverage: θ = coverage_k * φ^coverage_nu
+        # 0D particles cover small spots → low coverage
+        "coverage_k": 0.25,
+        "coverage_nu": 0.33,
     },
     "VGCF": {
         "name": "VGCF (기상성장 탄소섬유, 1D)",
-        "sigma": 30000.0,   # S/m  — Endo et al. 2008
+        # Calibrated to composite electrode: ~5–30 S/m at 3–5 vol%.
+        # Ref: Endo et al. 2008 composite measurements.
+        "sigma": 3000.0,
         "rho":   1.9,
         "phi_c": 0.005,     # low threshold due to high aspect ratio (~100)
         "t":     1.5,
         "geometry": "1D",
+        # 1D: line contacts along fiber length → moderate contact resistance
+        "R_film": 0.07,
+        # 1D fibers bridge pathways but don't fully block pore channels
+        "tau_factor": 0.12,
+        "coverage_k": 0.45,
+        "coverage_nu": 0.45,
     },
     "MWCNT": {
         "name": "MWCNT (다중벽 탄소나노튜브, 1D)",
-        "sigma": 100000.0,  # S/m  — intrinsic, composite values lower
+        # Calibrated to composite electrode: ~10–100 S/m at 1–3 vol%.
+        # Ref: Forouzan et al. 2016 (intrinsic 100,000 S/m → contact-limited composite)
+        "sigma": 10000.0,
         "rho":   1.5,
         "phi_c": 0.001,     # very low threshold, aspect ratio ~500
         "t":     1.3,       # lower exponent for fibrous network
         "geometry": "1D",
+        # 1D high-AR: many thin-tube contacts wrapping particles → lower R_film
+        "R_film": 0.04,
+        # High-AR tubes wrap particles tightly → more coverage and tortuosity than VGCF
+        "tau_factor": 0.15,
+        "coverage_k": 0.55,
+        "coverage_nu": 0.45,
     },
     "Graphene": {
         "name": "Graphene / rGO (2D)",
-        "sigma": 50000.0,
+        # Calibrated to composite electrode: ~10–100 S/m at 3–8 vol%.
+        # rGO sheets have many defects/folds; effective network σ << bulk crystal.
+        "sigma": 2000.0,
         "rho":   2.2,
         "phi_c": 0.005,
         "t":     1.4,
         "geometry": "2D",
+        # 2D: face-on contact → largest contact area → lowest R_film
+        "R_film": 0.012,
+        # 2D sheets strongly obstruct ion diffusion pathways (tortuous detours)
+        "tau_factor": 0.30,
+        # 2D sheets cover large AM surface fractions → high shielding
+        "coverage_k": 0.65,
+        "coverage_nu": 0.50,
     },
     "KS6": {
         "name": "KS6 (플레이크 흑연, 2D)",
-        "sigma": 2000.0,
+        # Calibrated to composite electrode measurements.
+        # Rigid platelets → poor inter-particle contact → lower network σ than rGO.
+        "sigma": 200.0,
         "rho":   2.2,
         "phi_c": 0.05,      # high threshold due to rigid platelets
         "t":     2.0,
         "geometry": "2D",
+        # 2D rigid plates: poor face contact (stiffness) → higher than Graphene
+        "R_film": 0.18,
+        # Rigid KS6 platelets obstruct ion paths but less conformally than rGO
+        "tau_factor": 0.22,
+        "coverage_k": 0.35,
+        "coverage_nu": 0.45,
     },
 }
 
@@ -779,8 +825,12 @@ def recipe_to_electrode_props_bk(
             phi_c2_eff = phi_c2
         else:
             # Effective thresholds: each reduced by the other filler's contribution
-            phi_c1_eff = phi_c1 * max(0.0, 1.0 - phi_CA2 / phi_c2)
-            phi_c2_eff = phi_c2 * max(0.0, 1.0 - phi_CA1 / phi_c1)
+            # Floor at 10 % of original φ_c to prevent complete elimination
+            # when both CAs are far above their individual thresholds — that
+            # regime is outside the B-K near-threshold derivation and would
+            # otherwise give unphysically large ψ values.
+            phi_c1_eff = phi_c1 * max(0.10, 1.0 - phi_CA2 / phi_c2)
+            phi_c2_eff = phi_c2 * max(0.10, 1.0 - phi_CA1 / phi_c1)
 
             psi1 = max(0.0, phi_CA1 - phi_c1_eff)
             psi2 = max(0.0, phi_CA2 - phi_c2_eff)
@@ -803,12 +853,200 @@ def recipe_to_electrode_props_bk(
     }
 
 
+def calc_film_resistance(ca1_type, phi_CA1, ca2_type=None, phi_CA2=0.0):
+    """Effective particle-CA contact (film) resistance [Ω·m²].
+
+    Physical basis
+    --------------
+    The DFN σ_eff term only models bulk electron transport through the CA
+    network. But there is an additional resistance at each AM particle surface
+    where the CA network actually *touches* the particle.  This contact quality
+    depends on geometry:
+
+      0D (Carbon Black) : point contacts only              → highest R_film
+      1D (VGCF/MWCNT)  : line contacts along fiber length  → moderate R_film
+      2D (Graphene/KS6) : face-on contact (flexible sheets) → lowest R_film
+
+    For a binary hybrid (e.g., CNT skeleton + CB gap-filler), the two networks
+    cooperate to cover more of each particle surface than either alone, giving a
+    synergistic reduction in R_film (Nguyen et al., Adv. Energy Mater. 2020).
+
+    Loading correction
+    ------------------
+    More CA loading → better surface coverage → lower R_film.
+    Scaled as R_film = R_film_base * (phi_c / phi_CA)^0.4   (above threshold).
+    Below threshold: R_film = R_film_base * 4  (sparse contacts).
+
+    Parameters
+    ----------
+    ca1_type : str   Key into CA_PARAMS.
+    phi_CA1  : float Volume fraction of CA1 in solid phase.
+    ca2_type : str or None
+    phi_CA2  : float Volume fraction of CA2 (0 if single CA).
+
+    Returns
+    -------
+    R_film : float  [Ω·m²]
+    """
+    def _single(ca_type, phi):
+        p = CA_PARAMS[ca_type]
+        R_base = p["R_film"]
+        phi_c  = p["phi_c"]
+        if phi > phi_c:
+            return R_base * (phi_c / phi) ** 0.4
+        else:
+            return R_base * 4.0           # below percolation: very poor contact
+
+    R_f1 = _single(ca1_type, phi_CA1)
+
+    if ca2_type is None or phi_CA2 < 1e-6:
+        return max(R_f1, 1e-5)
+
+    R_f2 = _single(ca2_type, phi_CA2)
+
+    # Synergy factor by geometry combination
+    geo1 = CA_PARAMS[ca1_type]["geometry"]
+    geo2 = CA_PARAMS[ca2_type]["geometry"]
+    _SYNERGY = {
+        frozenset(["0D", "1D"]): 0.58,   # CB fills CNT/VGCF network gaps → best synergy
+        frozenset(["0D", "2D"]): 0.63,   # CB fills sheet-edge gaps
+        frozenset(["1D", "2D"]): 0.52,   # fiber skeleton + sheet wrapping → best of all
+        frozenset(["0D", "0D"]): 0.85,
+        frozenset(["1D", "1D"]): 0.78,
+        frozenset(["2D", "2D"]): 0.80,
+    }
+    synergy = _SYNERGY.get(frozenset([geo1, geo2]), 0.72)
+
+    # Coverage-weighted average, then apply synergy reduction
+    total = phi_CA1 + phi_CA2
+    w1, w2 = phi_CA1 / total, phi_CA2 / total
+    R_f_hybrid = synergy * (w1 * R_f1 + w2 * R_f2)
+
+    return max(R_f_hybrid, 1e-5)
+
+
+def calc_ca_tortuosity(ca1_type, phi_CA1, ca2_type=None, phi_CA2=0.0):
+    """Extra ionic tortuosity factor introduced by CA geometry [dimensionless, ≥ 1].
+
+    Physical basis
+    --------------
+    Electrolyte ions must navigate around CA particles/fibers/sheets inside
+    the cathode pore network.  The additional detour length depends on
+    CA geometry:
+
+      0D (Carbon Black) : spheres occupy small volumes → little extra tortuosity
+      1D (VGCF/MWCNT)  : fibers bridge across pores → moderate extra tortuosity
+      2D (Graphene/KS6) : rigid or flexible sheets block cross-pore pathways
+                          and force ions to go around → highest extra tortuosity
+
+    Model
+    -----
+      τ_extra = 1 + tau_factor * (φ_CA / φ_c)^0.5     for φ_CA > φ_c
+      τ_extra = 1.0                                     for φ_CA ≤ φ_c
+                                                        (disconnected, no network)
+
+    This extra factor divides both D_e_eff and κ_eff in the positive electrode,
+    slowing both diffusive and migratory ion transport.
+
+    Binary blend
+    ------------
+    Tortuosity from two CA components is combined as a volume-weighted average
+    (they contribute independently to pore obstruction).
+
+    Parameters
+    ----------
+    ca1_type : str   Key into CA_PARAMS.
+    phi_CA1  : float Volume fraction of CA1 in solid phase.
+    ca2_type : str or None
+    phi_CA2  : float Volume fraction of CA2 (0 if single CA).
+
+    Returns
+    -------
+    tau_extra : float  ≥ 1.0
+    """
+    def _single(ca_type, phi):
+        p = CA_PARAMS[ca_type]
+        phi_c   = p["phi_c"]
+        tau_f   = p["tau_factor"]
+        if phi > phi_c:
+            return 1.0 + tau_f * (phi / phi_c) ** 0.5
+        return 1.0   # below percolation: no connected CA network
+
+    tau1 = _single(ca1_type, phi_CA1)
+    if ca2_type is None or phi_CA2 < 1e-6:
+        return tau1
+
+    tau2 = _single(ca2_type, phi_CA2)
+    total = phi_CA1 + phi_CA2
+    w1, w2 = phi_CA1 / total, phi_CA2 / total
+    return w1 * tau1 + w2 * tau2
+
+
+def calc_ca_coverage(ca1_type, phi_CA1, ca2_type=None, phi_CA2=0.0):
+    """Fractional coverage of AM particle surface by CA [0, 1).
+
+    Physical basis
+    --------------
+    Where CA directly covers the AM surface, the electrochemically active
+    area is reduced because Li⁺ ions cannot access the buried interface.
+    This is captured by an effective interfacial area:
+
+        a_eff = a_p * (1 - θ)
+
+    Coverage model (power law, inspired by Kalnaus et al., 2011):
+        θ = coverage_k * φ_CA ^ coverage_nu
+
+    Geometry dependence:
+      0D (Carbon Black) : small spheres cover limited surface patches → low θ
+      1D (VGCF/MWCNT)  : fibers lie tangentially on particle surface → moderate θ
+      2D (Graphene/KS6) : large sheets can drape over particles → highest θ
+
+    Binary blend
+    ------------
+    Two CA components cover the surface partially independently:
+        θ_total = θ_1 + θ_2 * (1 - θ_1)   (complementary-probability model)
+    This avoids double-counting and caps at < 1.
+
+    Parameters
+    ----------
+    ca1_type : str   Key into CA_PARAMS.
+    phi_CA1  : float Volume fraction of CA1 in solid phase.
+    ca2_type : str or None
+    phi_CA2  : float Volume fraction of CA2 (0 if single CA).
+
+    Returns
+    -------
+    theta : float  ∈ [0, 0.95)
+    """
+    def _single(ca_type, phi):
+        p = CA_PARAMS[ca_type]
+        k  = p["coverage_k"]
+        nu = p["coverage_nu"]
+        return k * (phi ** nu)
+
+    theta1 = _single(ca1_type, phi_CA1)
+    if ca2_type is None or phi_CA2 < 1e-6:
+        return min(theta1, 0.95)
+
+    theta2 = _single(ca2_type, phi_CA2)
+    theta_total = theta1 + theta2 * (1.0 - theta1)
+    return min(theta_total, 0.95)
+
+
 # =============================================================================
 # 7. MESH ASSEMBLY
 # =============================================================================
 
-def build_cell_mesh(p, N_n=20, N_s=10, N_p=20, N_r=10):
-    """Build the complete cell mesh for x-direction and r-direction particles."""
+def build_cell_mesh(p, N_n=20, N_s=10, N_p=20, N_r=10, tau_elyte_p=None):
+    """Build the complete cell mesh for x-direction and r-direction particles.
+
+    tau_elyte_p : float or None
+        Direct tortuosity factor for the positive electrode electrolyte
+        transport (PyBaMM convention: D_eff = D * ε / τ).
+        When provided, replaces the Bruggeman formula for the positive
+        electrode: eps_e_brugg_p = eps_e_p / tau_elyte_p.
+        When None (default): uses Bruggeman power-law eps_e_p ** brugg_p.
+    """
 
     # x-direction meshes for each domain
     mesh_n = build_uniform_mesh(p["L_n"], N_n)
@@ -863,11 +1101,17 @@ def build_cell_mesh(p, N_n=20, N_s=10, N_p=20, N_r=10):
         np.full(N_p, p["eps_e_p"])
     ])
 
-    # Bruggeman-corrected porosity for electrolyte transport
+    # Bruggeman-corrected (or τ-factor-corrected) porosity for electrolyte transport
+    # Positive electrode: use direct τ override if provided
+    if tau_elyte_p is not None:
+        brugg_p_val = p["eps_e_p"] / tau_elyte_p   # PyBaMM: D_eff = D·ε/τ
+    else:
+        brugg_p_val = p["eps_e_p"] ** p["brugg_p"]  # Bruggeman default
+
     eps_e_brugg = np.concatenate([
         np.full(N_n, p["eps_e_n"] ** p["brugg_n"]),
         np.full(N_s, p["eps_e_s"] ** p["brugg_s"]),
-        np.full(N_p, p["eps_e_p"] ** p["brugg_p"])
+        np.full(N_p, brugg_p_val)
     ])
 
     return {
@@ -993,29 +1237,50 @@ def particle_rhs(c_s_2d, j_array, D_s, particle_mesh, a_s, c_s_max):
 # 10. BUTLER-VOLMER KINETICS
 # =============================================================================
 
-def butler_volmer(phi_s, phi_e, U_eq, c_e, c_s_surf, c_s_max, k_rate, T):
-    """Symmetric Butler-Volmer: j = 2*j0*sinh(F*eta/(2RT)).
-    Returns j [A/m^2] (interfacial current density, NOT volumetric).
-    Includes smooth reduction for low c_e to prevent singularity.
+def butler_volmer(phi_s, phi_e, U_eq, c_e, c_s_surf, c_s_max, k_rate, T,
+                  R_film=0.0):
+    """Symmetric Butler-Volmer with optional particle-CA contact resistance.
+
+    Standard form (R_film = 0):
+        j = 2*j0*sinh(F*eta / (2RT)),   eta = phi_s - phi_e - U_eq
+
+    With contact (film) resistance R_film [Ω·m²]:
+        j = 2*j0*sinh(F*(eta - j*R_film) / (2RT))          [implicit in j]
+    Solved by Newton iteration (typically converges in < 8 steps).
+
+    Physical basis: R_film represents the electron-transfer resistance at the
+    AM particle – CA network interface.  It is geometry-dependent:
+        0D (CB)  > 1D (VGCF/CNT)  > 2D (Graphene)  in resistance.
+    A hybrid CA (e.g., 1D+0D) achieves synergistically lower R_film than either
+    component alone (see calc_film_resistance()).
+
+    Returns j [A/m²] (interfacial, NOT volumetric).
     """
-    # Exchange current density
     c_e_safe = np.clip(c_e, 1.0, None)
     c_s_safe = np.clip(c_s_surf, 1.0, c_s_max - 1.0)
 
-    # m_ref (= k_rate in Chen2020) already in (A/m2)(m3/mol)^1.5 — no F needed
     j0 = k_rate * np.sqrt(c_e_safe) * np.sqrt(c_s_safe) * np.sqrt(c_s_max - c_s_safe)
 
-    # Smooth reduction when c_e is low (prevents numerical blowup)
-    # Smoothly ramps from 0 at c_e=0 to 1 at c_e=100
     ce_factor = np.where(c_e < 100.0, np.clip(c_e / 100.0, 0.0, 1.0), 1.0)
     j0 = j0 * ce_factor
 
-    # Overpotential
     eta = phi_s - phi_e - U_eq
-    eta = np.clip(eta, -2.0, 2.0)  # Prevent overflow
+    alpha = 0.5 * F / (R_gas * T)
 
-    # Symmetric BV
-    j = 2.0 * j0 * np.sinh(0.5 * F * eta / (R_gas * T))
+    if R_film == 0.0 or np.all(np.asarray(R_film) < 1e-10):
+        return 2.0 * j0 * np.sinh(alpha * np.clip(eta, -2.0, 2.0))
+
+    # Newton iteration for implicit BV + film resistance
+    # g(j) = 2*j0*sinh(α*(η - j*R_f)) - j = 0
+    j = 2.0 * j0 * np.sinh(alpha * np.clip(eta, -2.0, 2.0))   # initial guess
+    for _ in range(20):
+        eta_eff = np.clip(eta - j * R_film, -2.0, 2.0)
+        g  =  2.0 * j0 * np.sinh(alpha * eta_eff) - j
+        gp = -2.0 * j0 * alpha * R_film * np.cosh(alpha * eta_eff) - 1.0
+        dj = g / gp
+        j  = j - dj
+        if np.max(np.abs(dj)) < 1e-12 * (np.max(np.abs(j)) + 1.0):
+            break
 
     return j
 
@@ -1024,11 +1289,17 @@ def butler_volmer(phi_s, phi_e, U_eq, c_e, c_s_surf, c_s_max, k_rate, T):
 # 11. MAIN RHS FUNCTION
 # =============================================================================
 
-def solve_consistent_ic(p, geo, sl, y0, I_app):
+def solve_consistent_ic(p, geo, sl, y0, I_app,
+                        tau_extra_p=1.0, theta_ca_p=0.0):
     """Solve for consistent initial conditions of algebraic variables (phi_s, phi_e).
 
     At t=0, the ODE variables (c_s, c_e) are fixed. We find phi_s, phi_e such that
     the algebraic residuals are zero. This mimics PyBaMM's IDA initialization.
+
+    tau_extra_p : float ≥ 1.0
+        Extra ionic tortuosity in positive electrode (divides kappa_eff).
+    theta_ca_p : float ∈ [0, 1)
+        Fractional AM surface coverage by CA; reduces a_p_eff.
     """
     from scipy.optimize import least_squares
 
@@ -1052,9 +1323,16 @@ def solve_consistent_ic(p, geo, sl, y0, I_app):
     c_s_surf_n = c_s_n[:, -1]
     c_s_surf_p = c_s_p[:, -1]
 
+    # Extra tortuosity array (positive electrode only)
+    tau_ca_array = np.ones(N_tot)
+    tau_ca_array[N_n + N_s:] = tau_extra_p
+
     # Properties
     kappa = p["kappa_e_func"](c_e)
-    kappa_eff = kappa * geo["eps_e_brugg"]
+    kappa_eff = kappa * geo["eps_e_brugg"] / tau_ca_array
+
+    # Effective interfacial area
+    a_p_eff = p["a_p"] * (1.0 - theta_ca_p)
 
     sto_n = c_s_surf_n / p["c_s_max_n"]
     sto_p = c_s_surf_p / p["c_s_max_p"]
@@ -1092,7 +1370,7 @@ def solve_consistent_ic(p, geo, sl, y0, I_app):
                             c_s_surf_p, p["c_s_max_p"], p["k_p"], p["T"])
 
         aj_n = p["a_n"] * j_n
-        aj_p = p["a_p"] * j_p
+        aj_p = a_p_eff * j_p
         a_j_full = np.zeros(N_tot)
         a_j_full[:N_n] = aj_n
         a_j_full[N_n + N_s:] = aj_p
@@ -1215,13 +1493,23 @@ def solve_potentials(phi_guess, c_e, c_s_surf_n, c_s_surf_p, p, geo, I_app):
     return phi_s_n, phi_s_p, phi_e, j_n, j_p
 
 
-def build_rhs(p, geo, sl, I_app, tau=1e-3):
+def build_rhs(p, geo, sl, I_app, tau=1e-3, R_film_n=0.0, R_film_p=0.0,
+              tau_extra_p=1.0, theta_ca_p=0.0):
     """Build the RHS function f(t, y) for solve_ivp.
 
     Strategy: Pseudo-transient DAE.
     ODE variables (c_s, c_e): standard RHS with physical time derivatives.
     Algebraic variables (phi_s, phi_e): residual / tau (fast relaxation).
     BDF handles the stiffness of the pseudo-transient implicitly.
+
+    Extra CA-geometry parameters
+    ----------------------------
+    tau_extra_p : float ≥ 1.0
+        Additional ionic tortuosity from CA network in positive electrode.
+        Divides both D_e_eff and kappa_eff in the positive electrode nodes.
+    theta_ca_p : float ∈ [0, 1)
+        Fractional AM surface coverage by CA in positive electrode.
+        Reduces active interfacial area: a_p_eff = a_p * (1 - theta_ca_p).
     """
     N_n = geo["N_n"]
     N_s = geo["N_s"]
@@ -1252,6 +1540,14 @@ def build_rhs(p, geo, sl, I_app, tau=1e-3):
 
     inv_tau = 1.0 / tau
 
+    # Extra tortuosity array: only applied in positive electrode nodes
+    # τ_ca[i] = tau_extra_p for i in positive electrode, else 1.0
+    tau_ca_array = np.ones(N_tot)
+    tau_ca_array[N_n + N_s:] = tau_extra_p
+
+    # Effective specific interfacial area in positive electrode (area shielding)
+    a_p_eff = p["a_p"] * (1.0 - theta_ca_p)
+
     def rhs(t, y):
         # ---- Unpack full state vector ----
         c_s_n, c_s_p, eps_c_e, phi_s_n, phi_s_p, phi_e = unpack(y, sl, geo)
@@ -1268,17 +1564,19 @@ def build_rhs(p, geo, sl, I_app, tau=1e-3):
         U_n = OCP_n_func(sto_n)
         U_p = OCP_p_func(sto_p)
 
-        # ---- Butler-Volmer kinetics ----
+        # ---- Butler-Volmer kinetics (with contact resistance) ----
         phi_e_n = phi_e[:N_n]
         phi_e_p = phi_e[N_n + N_s:]
         j_n = butler_volmer(phi_s_n, phi_e_n, U_n, c_e[:N_n],
-                            c_s_surf_n, p["c_s_max_n"], p["k_n"], p["T"])
+                            c_s_surf_n, p["c_s_max_n"], p["k_n"], p["T"],
+                            R_film_n)
         j_p = butler_volmer(phi_s_p, phi_e_p, U_p, c_e[N_n + N_s:],
-                            c_s_surf_p, p["c_s_max_p"], p["k_p"], p["T"])
+                            c_s_surf_p, p["c_s_max_p"], p["k_p"], p["T"],
+                            R_film_p)
 
-        # Volumetric source
+        # Volumetric source (positive electrode uses effective area)
         aj_n = p["a_n"] * j_n
-        aj_p = p["a_p"] * j_p
+        aj_p = a_p_eff * j_p
         a_j_full = np.zeros(N_tot)
         a_j_full[:N_n] = aj_n
         a_j_full[N_n + N_s:] = aj_p
@@ -1289,13 +1587,14 @@ def build_rhs(p, geo, sl, I_app, tau=1e-3):
         dc_s_n_dt = particle_rhs(c_s_n, j_n, p["D_s_n"], particle_n,
                                  p["a_n"], p["c_s_max_n"])
         dc_s_p_dt = particle_rhs(c_s_p, j_p, p["D_s_p"], particle_p,
-                                 p["a_p"], p["c_s_max_p"])
+                                 a_p_eff, p["c_s_max_p"])
 
         # ================================================================
         # ODE 2: Electrolyte concentration
         # ================================================================
         D_e_val = D_e_func(c_e)
-        D_e_eff = D_e_val * eps_e_brugg
+        # D_e_eff: Bruggeman tortuosity AND extra CA geometry tortuosity
+        D_e_eff = D_e_val * eps_e_brugg / tau_ca_array
         grad_ce = G_x @ c_e
         D_eff_edges = 0.5 * (D_e_eff[:-1] + D_e_eff[1:])
         flux_ce = apply_neumann_bc(D_eff_edges * grad_ce, 0.0, 0.0)
@@ -1325,7 +1624,8 @@ def build_rhs(p, geo, sl, I_app, tau=1e-3):
         # This is stable AND drives to the same steady state div(i_e) = a·j
         grad_pe = G_x @ phi_e
         kappa = kappa_e_func(c_e)
-        kappa_eff = kappa * eps_e_brugg
+        # kappa_eff: Bruggeman AND extra CA tortuosity
+        kappa_eff = kappa * eps_e_brugg / tau_ca_array
         kap_edges = 0.5 * (kappa_eff[:-1] + kappa_eff[1:])
         ce_edges = np.clip(0.5 * (c_e[:-1] + c_e[1:]), 1.0, None)
         chi_term = chi_factor * R_gas * p["T"] / (F * ce_edges)
@@ -1486,6 +1786,8 @@ def build_jac_sparsity(sl, geo):
 def run_dfn_simulation(C_rate=1.0, material="NCM",
                        recipe_CA=None, recipe_Binder=None,
                        porosity_p=None,
+                       ca1_type="SuperP", ca2_type=None, ca2_ratio=0.0,
+                       tau_elyte_p=None,
                        N_n=15, N_s=8, N_p=15, N_r=8,
                        t_max=None, tau=1e-3, plot=True,
                        cell_type="Chen2020"):
@@ -1503,6 +1805,12 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
         Binder weight % in cathode recipe.
     porosity_p : float or None
         Cathode porosity override. If None, uses default.
+    tau_elyte_p : float or None
+        Direct tortuosity factor for positive electrode electrolyte transport
+        (PyBaMM convention: D_eff = D * ε / τ).
+        When provided, overrides Bruggeman and REPLACES tau_extra_p (CA-geometry
+        tortuosity is already incorporated into this total τ value).
+        When None: uses Bruggeman + tau_extra_p from CA geometry model.
     """
     print("=" * 70)
     print(f"  DFN MODEL — PyBaMM-Faithful Implementation")
@@ -1567,9 +1875,16 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
         rho_AM = mat["rho_AM"]
         eps_e_p = porosity_p if porosity_p is not None else p["eps_e_p"]
 
-        props = recipe_to_electrode_props(
-            wt_AM, recipe_CA, recipe_Binder, rho_AM,
-            porosity=eps_e_p, R_p=p["R_p_p"]
+        # Use B-K binary model if ca1_type is specified; else legacy single-CA
+        wt_CA1 = recipe_CA * (1.0 - ca2_ratio)
+        wt_CA2 = recipe_CA * ca2_ratio
+        use_binary = (ca2_type is not None and ca2_type != ca1_type and wt_CA2 > 0)
+        props = recipe_to_electrode_props_bk(
+            wt_AM, wt_CA1, wt_CA2 if use_binary else 0.0, recipe_Binder,
+            rho_AM=rho_AM,
+            porosity=eps_e_p, R_p=p["R_p_p"],
+            ca1_type=ca1_type,
+            ca2_type=ca2_type if use_binary else None,
         )
         p["eps_s_p"] = props["eps_s"]
         p["eps_e_p"] = props["eps_e"]
@@ -1577,16 +1892,47 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
         p["sigma_eff_p"] = props["sigma_eff"]
         p["a_p"] = props["a"]
 
-        print(f"  Recipe: AM={wt_AM:.1f}%, CA={recipe_CA:.1f}%, Binder={recipe_Binder:.1f}%")
+        print(f"  Recipe: AM={wt_AM:.1f}%, CA1({ca1_type})={wt_CA1:.1f}%"
+              + (f", CA2({ca2_type})={wt_CA2:.1f}%" if use_binary else "")
+              + f", Binder={recipe_Binder:.1f}%")
         print(f"  -> eps_s={props['eps_s']:.4f}, eps_e={props['eps_e']:.4f}")
-        print(f"  -> sigma_eff={props['sigma_eff']:.4f} S/m (percolation)")
+        print(f"  -> sigma_eff={props['sigma_eff']:.4f} S/m (B-K percolation)")
         print(f"  -> a_p={props['a']:.0f} 1/m")
+        # Compute particle-CA contact resistance (captures CA geometry effect)
+        R_film_p = calc_film_resistance(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_binary else None,
+            props["phi_CA2"] if use_binary else 0.0,
+        )
+        p["R_film_p"] = R_film_p
+        print(f"  -> R_film_p={R_film_p:.5f} Ω·m² (contact resistance)")
+
+        # Ionic tortuosity from CA geometry (obstructs electrolyte pathways)
+        tau_extra_p = calc_ca_tortuosity(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_binary else None,
+            props["phi_CA2"] if use_binary else 0.0,
+        )
+        p["tau_extra_p"] = tau_extra_p
+        print(f"  -> tau_extra_p={tau_extra_p:.4f} (ionic tortuosity from CA)")
+
+        # Active area shielding from CA surface coverage
+        theta_ca_p = calc_ca_coverage(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_binary else None,
+            props["phi_CA2"] if use_binary else 0.0,
+        )
+        p["theta_ca_p"] = theta_ca_p
+        print(f"  -> theta_ca_p={theta_ca_p:.4f} (active area shielding by CA)")
     else:
         # Default: recalculate a_p from material R_p
         p["a_p"] = 3.0 * p["eps_s_p"] / p["R_p_p"]
         p["sigma_eff_p"] = p["sigma_p"]
         if porosity_p is not None:
             p["eps_e_p"] = porosity_p
+        p["R_film_p"]   = 0.0
+        p["tau_extra_p"] = 1.0
+        p["theta_ca_p"]  = 0.0
 
     I_app = p["Q_cell"] * C_rate
     if t_max is None:
@@ -1596,7 +1942,14 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
     print(f"  Current density: {I_app / p['A_cell']:.2f} A/m^2")
 
     # Build mesh
-    geo = build_cell_mesh(p, N_n, N_s, N_p, N_r)
+    # tau_elyte_p: direct PyBaMM-style tortuosity factor (ε/τ replaces Bruggeman).
+    # When provided, tau_extra_p (CA geometry additive tortuosity) must NOT be
+    # applied again since the caller's τ already encodes total transport resistance.
+    _tau_mesh = tau_elyte_p
+    if tau_elyte_p is not None:
+        p["tau_extra_p"] = 1.0   # avoid double-counting
+        print(f"  -> tau_elyte_p={tau_elyte_p:.3f} (direct τ override, Bruggeman bypassed)")
+    geo = build_cell_mesh(p, N_n, N_s, N_p, N_r, tau_elyte_p=_tau_mesh)
     sl = build_slices(geo)
     N_tot = geo["N_tot"]
 
@@ -1607,13 +1960,18 @@ def run_dfn_simulation(C_rate=1.0, material="NCM",
     # Initial conditions
     y0 = build_initial_conditions(p, geo, sl)
     print("  Solving consistent initial conditions...")
-    y0 = solve_consistent_ic(p, geo, sl, y0, I_app)
+    y0 = solve_consistent_ic(p, geo, sl, y0, I_app,
+                             tau_extra_p=p.get("tau_extra_p", 1.0),
+                             theta_ca_p=p.get("theta_ca_p", 0.0))
 
     V_init = y0[sl["phi_s_p"]][-1] - y0[sl["phi_s_n"]][0]
     print(f"  Initial voltage: {V_init:.4f} V")
 
     # Build RHS (pseudo-transient DAE)
-    rhs = build_rhs(p, geo, sl, I_app, tau=tau)
+    rhs = build_rhs(p, geo, sl, I_app, tau=tau,
+                    R_film_n=0.0, R_film_p=p.get("R_film_p", 0.0),
+                    tau_extra_p=p.get("tau_extra_p", 1.0),
+                    theta_ca_p=p.get("theta_ca_p", 0.0))
 
     # Build sparse Jacobian sparsity pattern for BDF efficiency
     print("  Building Jacobian sparsity pattern...")
@@ -1952,7 +2310,214 @@ def compare_crates(material="NCM", crates=None, recipe_CA=None,
 
 
 # =============================================================================
-# 17. ENTRY POINT (CLI)
+# 17. CA COMPOSITION COMPARISON
+# =============================================================================
+
+def run_composition_comparison(
+    material="NCM",
+    C_rate=1.0,
+    wt_CA_total=10.0,
+    wt_binder=10.0,
+    N_n=15, N_s=8, N_p=15, N_r=8,
+    save_path=None,
+):
+    """Compare 5 SuperP:Graphene blend ratios on a single discharge curve plot.
+
+    Physical model
+    --------------
+    Each composition is simulated with:
+      - σ_eff : computed from Bauhofer-Kovacs binary percolation model
+      - ε, ε_s : self-consistent values from recipe (AM=80%, CA=wt_CA_total%, Binder=wt_binder%)
+      - τ     : specified per composition (ionic tortuosity of positive electrode)
+                0D-heavy → lower τ (open pore structure)
+                2D-heavy → higher τ (sheets obstruct ion pathways)
+
+    SP:G compositions (τ values derived from literature):
+      10:0  SuperP only   → τ = 2.0
+       7:3  mostly SuperP → τ = 1.8 (Graphene opens network slightly)
+       5:5  equal blend   → τ = 1.7 (optimal synergy)
+       3:7  mostly Graphene→ τ = 2.0 (sheets begin to obstruct)
+       0:10 Graphene only → τ = 2.8 (maximum sheet-induced obstruction)
+
+    Parameters
+    ----------
+    material : str
+        Cathode material.
+    C_rate : float
+        Discharge C-rate.
+    wt_CA_total : float
+        Total conductive additive weight percent (split between SP and Graphene).
+    wt_binder : float
+        Binder weight percent.
+    save_path : str or None
+        If given, saves PNG to this path. Otherwise saves to Desktop.
+    """
+    # ── Composition definitions ──────────────────────────────────────────────
+    # Each entry: label, SuperP fraction of total CA, τ_elyte, colour
+    compositions = [
+        {"label": "SP:G = 10:0", "sp_frac": 1.0, "ca1": "SuperP",   "ca2": None,
+         "tau": 2.0,  "color": "#1565C0"},   # deep blue
+        {"label": "SP:G = 7:3",  "sp_frac": 0.7, "ca1": "SuperP",   "ca2": "Graphene",
+         "tau": 1.8,  "color": "#2E7D32"},   # dark green
+        {"label": "SP:G = 5:5",  "sp_frac": 0.5, "ca1": "SuperP",   "ca2": "Graphene",
+         "tau": 1.7,  "color": "#F57F17"},   # amber
+        {"label": "SP:G = 3:7",  "sp_frac": 0.3, "ca1": "SuperP",   "ca2": "Graphene",
+         "tau": 2.0,  "color": "#6A1B9A"},   # purple
+        {"label": "SP:G = 0:10", "sp_frac": 0.0, "ca1": "Graphene", "ca2": None,
+         "tau": 2.8,  "color": "#C62828"},   # dark red
+    ]
+
+    results = []
+    mat = load_material_params(material)
+
+    print("\n" + "=" * 70)
+    print(f"  CA COMPOSITION COMPARISON — {material} | {C_rate}C")
+    print("=" * 70)
+
+    for comp in compositions:
+        print(f"\n  [{comp['label']}]  τ={comp['tau']}")
+        sp_frac = comp["sp_frac"]
+        g_frac  = 1.0 - sp_frac
+
+        # ca2_ratio = fraction of total CA that is Graphene
+        # For pure cases (SP:G=10:0 or 0:10) use single-CA mode
+        if g_frac == 0.0:
+            ca1_t, ca2_t, ca2_r = "SuperP",   None,       0.0
+        elif sp_frac == 0.0:
+            ca1_t, ca2_t, ca2_r = "Graphene", None,       0.0
+        else:
+            ca1_t, ca2_t, ca2_r = "SuperP",   "Graphene", g_frac
+
+        try:
+            t, V, p_out, geo = run_dfn_simulation(
+                C_rate=C_rate,
+                material=material,
+                recipe_CA=wt_CA_total,
+                recipe_Binder=wt_binder,
+                ca1_type=ca1_t,
+                ca2_type=ca2_t,
+                ca2_ratio=ca2_r,
+                tau_elyte_p=comp["tau"],
+                N_n=N_n, N_s=N_s, N_p=N_p, N_r=N_r,
+                plot=False,
+            )
+        except Exception as e:
+            print(f"    FAILED: {e}")
+            continue
+
+        # Specific capacity [mAh/g]
+        cap_Ah = t * p_out["Q_cell"] * C_rate / 3600.0
+        mass_AM_g = (p_out["eps_s_p"] * p_out["L_p"]
+                     * p_out["A_cell"] * p_out["rho_AM"] * 1e6)
+        cap_mAhg = cap_Ah * 1000.0 / mass_AM_g
+
+        final_cap = float(cap_mAhg[-1])
+        sigma_used = p_out.get("sigma_eff_p", p_out.get("sigma_p", 0))
+
+        print(f"    → Final capacity: {final_cap:.1f} mAh/g  "
+              f"σ_eff={sigma_used:.2f} S/m  τ={comp['tau']}")
+
+        results.append({
+            "label":     comp["label"],
+            "color":     comp["color"],
+            "cap":       cap_mAhg,
+            "V":         V,
+            "final_cap": final_cap,
+            "sigma":     sigma_used,
+            "tau":       comp["tau"],
+            "eps_e":     p_out["eps_e_p"],
+            "eps_s":     p_out["eps_s_p"],
+        })
+
+    if not results:
+        print("No successful simulations.")
+        return results
+
+    # ── Plot ─────────────────────────────────────────────────────────────────
+    fig, ax = plt.subplots(figsize=(11, 7))
+    fig.patch.set_facecolor("#FAFAFA")
+    ax.set_facecolor("#FAFAFA")
+
+    x_max_global = 0.0
+    for r in results:
+        ax.plot(r["cap"], r["V"],
+                color=r["color"], linewidth=2.2,
+                label=(f"{r['label']}  "
+                       f"(τ={r['tau']:.1f}, σ={r['sigma']:.2f} S/m, "
+                       f"ε={r['eps_e']:.3f})"))
+        x_max_global = max(x_max_global, float(r["cap"][-1]))
+
+    # Annotate final capacity at curve end
+    for r in results:
+        ax.annotate(
+            f"{r['final_cap']:.1f}",
+            xy=(r["final_cap"], float(r["V"][-1])),
+            xytext=(6, 0), textcoords="offset points",
+            fontsize=9, color=r["color"], fontweight="bold",
+            va="center",
+        )
+
+    ax.set_xlabel("방전 용량 [mAh/g]", fontsize=14)
+    ax.set_ylabel("전압 [V]", fontsize=14)
+    ax.set_title(
+        f"Effect of Conductive Additive Ratio on Discharge Curve ({C_rate}C)\n"
+        f"{material}  |  CA={wt_CA_total:.0f}wt%  Binder={wt_binder:.0f}wt%  "
+        f"AM={100-wt_CA_total-wt_binder:.0f}wt%",
+        fontsize=13,
+    )
+
+    ax.set_xlim(0, x_max_global * 1.08)
+    ax.set_ylim(mat["V_min"] - 0.05, None)
+    ax.xaxis.set_major_locator(plt.MultipleLocator(20))
+    ax.yaxis.set_major_locator(plt.MultipleLocator(0.5))
+    ax.tick_params(labelsize=12)
+    ax.legend(fontsize=9.5, loc="upper right",
+              framealpha=0.9, edgecolor="#cccccc")
+    ax.grid(True, alpha=0.3, linewidth=0.8)
+
+    # Summary table inset (bottom-left)
+    col_labels = ["조성", "σ_eff (S/m)", "τ", "ε", "용량 (mAh/g)"]
+    table_data = [[
+        r["label"].replace("SP:G = ", ""),
+        f"{r['sigma']:.3f}",
+        f"{r['tau']:.1f}",
+        f"{r['eps_e']:.3f}",
+        f"{r['final_cap']:.1f}",
+    ] for r in results]
+
+    tbl = ax.table(
+        cellText=table_data,
+        colLabels=col_labels,
+        loc="lower left",
+        bbox=[0.0, 0.01, 0.46, 0.24],   # [x0, y0, width, height] in axes coords
+    )
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(8.5)
+    for (row, col), cell in tbl.get_celld().items():
+        cell.set_edgecolor("#aaaaaa")
+        if row == 0:
+            cell.set_facecolor("#E3F2FD")
+            cell.set_text_props(fontweight="bold")
+        else:
+            cell.set_facecolor("#FFFFFF" if row % 2 == 0 else "#F5F5F5")
+            # Colour the composition label cell to match its curve
+            if col == 0 and 0 < row <= len(results):
+                cell.set_text_props(color=results[row - 1]["color"],
+                                    fontweight="bold")
+
+    plt.tight_layout()
+
+    if save_path is None:
+        save_path = "/Users/essential/Desktop/캡스톤 디자인/CA_composition_comparison.png"
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.show()
+    print(f"\n  Plot saved: {save_path}")
+
+    return results
+
+
+# =============================================================================
+# 18. ENTRY POINT (CLI)
 # =============================================================================
 
 if __name__ == "__main__":
@@ -1964,12 +2529,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("mode", nargs="?", default="run",
                         choices=["run", "compare_materials", "compare_recipes",
-                                 "compare_crates"],
+                                 "compare_crates", "compare_compositions"],
                         help=("Simulation mode:\n"
-                              "  run              — Single discharge (default)\n"
-                              "  compare_materials — NCM vs LFP vs LMFP\n"
-                              "  compare_recipes  — Recipe effect comparison\n"
-                              "  compare_crates   — C-rate comparison"))
+                              "  run                  — Single discharge (default)\n"
+                              "  compare_materials    — NCM vs LFP vs LMFP\n"
+                              "  compare_recipes      — Recipe effect comparison\n"
+                              "  compare_crates       — C-rate comparison\n"
+                              "  compare_compositions — SP:G ratio comparison (1C)"))
     parser.add_argument("-m", "--material", default="NCM",
                         choices=["NCM", "LFP", "LMFP", "LMFP64", "LMFP73", "LMFP82"],
                         help="Cathode material (default: NCM)")
@@ -2109,3 +2675,13 @@ if __name__ == "__main__":
         plt.savefig(f"{base_dir}/DFN_recipe_comparison.png", dpi=150)
         if not args.no_plot:
             plt.show()
+
+    elif args.mode == "compare_compositions":
+        # --- SP:G composition comparison ---
+        run_composition_comparison(
+            material=args.material,
+            C_rate=args.crate,
+            wt_CA_total=args.ca if args.ca is not None else 10.0,
+            wt_binder=args.binder if args.binder is not None else 10.0,
+            save_path=f"{base_dir}/CA_composition_comparison.png",
+        )

@@ -23,6 +23,9 @@ run_dfn_simulation          = _mod.run_dfn_simulation
 export_csv                  = _mod.export_csv
 recipe_to_electrode_props   = _mod.recipe_to_electrode_props
 recipe_to_electrode_props_bk = _mod.recipe_to_electrode_props_bk
+calc_film_resistance        = _mod.calc_film_resistance
+calc_ca_tortuosity          = _mod.calc_ca_tortuosity
+calc_ca_coverage            = _mod.calc_ca_coverage
 load_material_params        = _mod.load_material_params
 CA_PARAMS                   = _mod.CA_PARAMS
 
@@ -84,6 +87,21 @@ def perc_preview():
             ca1_type=ca1_type,
             ca2_type=ca2_type if use_ca2 else None,
         )
+        R_film = calc_film_resistance(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_ca2 else None,
+            props["phi_CA2"] if use_ca2 else 0.0,
+        )
+        tau_extra = calc_ca_tortuosity(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_ca2 else None,
+            props["phi_CA2"] if use_ca2 else 0.0,
+        )
+        theta_ca = calc_ca_coverage(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_ca2 else None,
+            props["phi_CA2"] if use_ca2 else 0.0,
+        )
         return jsonify({
             "sigma_eff":  round(props["sigma_eff"], 4),
             "eps_s":      round(props["eps_s"], 4),
@@ -94,6 +112,9 @@ def perc_preview():
             "phi_CA2":    round(props["phi_CA2"], 4),
             "phi_c1_eff": round(props["phi_c1_eff"], 4),
             "phi_c2_eff": round(props["phi_c2_eff"] if props["phi_c2_eff"] is not None else 0, 4),
+            "R_film":     round(R_film, 6),
+            "tau_extra":  round(tau_extra, 4),
+            "theta_ca":   round(theta_ca, 4),
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -104,14 +125,17 @@ def simulate():
     """Run DFN simulation and return Plotly JSON + summary stats."""
     data = request.get_json()
 
-    material   = data.get("material", "NCM")
-    C_rate     = float(data.get("crate", 1.0))
-    wt_CA      = float(data.get("wt_ca", 0))
-    wt_binder  = float(data.get("wt_binder", 0))
-    use_recipe = data.get("use_recipe", False)
-    ca1_type   = data.get("ca1_type", "SuperP")
-    ca2_type   = data.get("ca2_type", None)   # None = 단일 CA
-    ca2_ratio  = float(data.get("ca2_ratio", 0.0))  # CA2 비율 (0~1)
+    material    = data.get("material", "NCM")
+    C_rate      = float(data.get("crate", 1.0))
+    wt_CA       = float(data.get("wt_ca", 0))
+    wt_binder   = float(data.get("wt_binder", 0))
+    use_recipe  = data.get("use_recipe", False)
+    ca1_type    = data.get("ca1_type", "SuperP")
+    ca2_type    = data.get("ca2_type", None)
+    ca2_ratio   = float(data.get("ca2_ratio", 0.0))
+    tau_elyte_p = data.get("tau_elyte_p", None)   # optional direct τ override
+    if tau_elyte_p is not None:
+        tau_elyte_p = float(tau_elyte_p)
 
     try:
         t, V, p, geo = run_dfn_simulation(
@@ -119,6 +143,10 @@ def simulate():
             material=material,
             recipe_CA=wt_CA if use_recipe else None,
             recipe_Binder=wt_binder if use_recipe else None,
+            ca1_type=ca1_type,
+            ca2_type=ca2_type,
+            ca2_ratio=ca2_ratio,
+            tau_elyte_p=tau_elyte_p,
             N_n=15, N_s=8, N_p=15, N_r=8,
             plot=False,
         )
@@ -150,6 +178,21 @@ def simulate():
             ca1_type=ca1_type,
             ca2_type=ca2_type if use_ca2 else None,
         )
+        R_film = calc_film_resistance(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_ca2 else None,
+            props["phi_CA2"] if use_ca2 else 0.0,
+        )
+        tau_extra = calc_ca_tortuosity(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_ca2 else None,
+            props["phi_CA2"] if use_ca2 else 0.0,
+        )
+        theta_ca = calc_ca_coverage(
+            ca1_type, props["phi_CA1"],
+            ca2_type if use_ca2 else None,
+            props["phi_CA2"] if use_ca2 else 0.0,
+        )
         sigma_info = {
             "sigma_eff":  round(props["sigma_eff"], 4),
             "eps_s":      round(props["eps_s"], 4),
@@ -162,6 +205,9 @@ def simulate():
             "phi_c2_eff": round(props["phi_c2_eff"] if props["phi_c2_eff"] is not None else 0, 4),
             "ca1_type":   ca1_type,
             "ca2_type":   ca2_type if use_ca2 else None,
+            "R_film":     round(R_film, 6),
+            "tau_extra":  round(tau_extra, 4),
+            "theta_ca":   round(theta_ca, 4),
         }
 
     summary = {

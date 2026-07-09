@@ -19,7 +19,9 @@
       "WebFetch(domain:iopscience.iop.org)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:sci-hub.hlgczx.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "Bash(python3 -c \"import pybamm; print\\('PyBaMM version:', pybamm.__version__\\)\")"
     ],
     "additionalDirectories": [
       "/Users/essential/Documents/GitHub/DFN model simulator(originated by PyBaMM)",

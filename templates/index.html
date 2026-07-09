@@ -594,6 +594,34 @@ function renderPercBadge(d, ca1, ca2, useCA2) {
     html += `φ/φ_c = <b>${d.perc_index}</b> ${status}`;
   }
 
+  if (d.R_film !== undefined) {
+    const rfColor = d.R_film < 0.03 ? '#166534' : d.R_film < 0.10 ? '#92400e' : '#7f1d1d';
+    const rfLabel = d.R_film < 0.03 ? '우수' : d.R_film < 0.10 ? '보통' : '불량';
+    html += `<br>R_film = <b style="color:${rfColor}">${d.R_film.toFixed(5)} Ω·m²</b>`;
+    html += ` <span style="font-size:.72rem;opacity:.8;">(접촉저항 ${rfLabel} — `;
+    html += useCA2 && ca2
+      ? `0D/1D/2D 시너지 반영)`
+      : `CA 기하학적 접촉 품질)`;
+    html += `</span>`;
+  }
+
+  if (d.tau_extra !== undefined) {
+    const tauColor = d.tau_extra < 1.05 ? '#166534' : d.tau_extra < 1.15 ? '#92400e' : '#7f1d1d';
+    const tauLabel = d.tau_extra < 1.05 ? '낮음' : d.tau_extra < 1.15 ? '보통' : '높음';
+    html += `<br>τ_CA = <b style="color:${tauColor}">${d.tau_extra.toFixed(4)}</b>`;
+    html += ` <span style="font-size:.72rem;opacity:.8;">(이온 추가 곡절 ${tauLabel} — 전해질 이동 방해)</span>`;
+  }
+
+  if (d.theta_ca !== undefined) {
+    const thColor = d.theta_ca < 0.10 ? '#166534' : d.theta_ca < 0.25 ? '#92400e' : '#7f1d1d';
+    const thLabel = d.theta_ca < 0.10 ? '낮음' : d.theta_ca < 0.25 ? '보통' : '높음';
+    const aEff = d.a_p ? Math.round(d.a_p * (1 - d.theta_ca)) : null;
+    html += `<br>θ_CA = <b style="color:${thColor}">${(d.theta_ca * 100).toFixed(1)}%</b>`;
+    html += ` <span style="font-size:.72rem;opacity:.8;">(활성면 차폐 ${thLabel}`;
+    if (aEff !== null) html += ` — a_eff ≈ ${aEff.toLocaleString()} m⁻¹`;
+    html += `)</span>`;
+  }
+
   pb.innerHTML = html;
 }
 
